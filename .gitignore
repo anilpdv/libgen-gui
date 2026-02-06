@@ -1,0 +1,26 @@
+# Binaries & Packaging Outputs
+LibGen Downloader
+*.app/
+*.app
+*.exe
+*.apk
+*.zip
+*.tar.gz
+*.deb
+bin/
+dist/
+
+# Keystores & Certificates
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+
+# Temp, Scripts & OS files
+.DS_Store
+*.log
+scratch/
+.test_write_*
+scripts/
+*generate_history*
+*organic_git_history*
