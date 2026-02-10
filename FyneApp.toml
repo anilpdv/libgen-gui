@@ -1,0 +1,8 @@
+Website = "https://github.com/ciehanski/libgen-cli"
+
+[Details]
+  Icon = "icon.png"
+  Name = "LibGen Downloader"
+  ID = "com.libgen.downloader"
+  Version = "2.0.0"
+  Build = 57
