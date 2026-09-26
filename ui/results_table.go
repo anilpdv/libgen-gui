@@ -173,7 +173,7 @@ func NewResultsView(a *App) *ResultsView {
 		rv.header = container.NewBorder(nil, nil, rv.headerCheck, nil, headerGrid)
 	}
 
-	rv.prevBtn = widget.NewButtonWithIcon("Prev", theme.NavigateBackIcon(), func() {
+	rv.prevBtn = widget.NewButtonWithIcon("← Prev", theme.NavigateBackIcon(), func() {
 		if a.currentPage > 1 {
 			a.searchBar.doSearchPage(a.currentPage - 1)
 		}
@@ -181,7 +181,7 @@ func NewResultsView(a *App) *ResultsView {
 	rv.prevBtn.Importance = widget.LowImportance
 	rv.prevBtn.Disable()
 
-	rv.nextBtn = widget.NewButtonWithIcon("Next", theme.NavigateNextIcon(), func() {
+	rv.nextBtn = widget.NewButtonWithIcon("Next →", theme.NavigateNextIcon(), func() {
 		a.searchBar.doSearchPage(a.currentPage + 1)
 	})
 	rv.nextBtn.Importance = widget.LowImportance

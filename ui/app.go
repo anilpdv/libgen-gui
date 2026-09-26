@@ -195,17 +195,20 @@ func (a *App) Build() fyne.CanvasObject {
 		}()
 	}
 
-	// layout: search on top, results in middle, download bar at bottom
+	// Modern layout: padded search bar on top, padded results in the center,
+	// padded download bar pinned to the bottom with a subtle divider.
 	top := container.NewVBox(
-		a.searchBar.Widget(),
+		container.NewPadded(a.searchBar.Widget()),
 		widget.NewSeparator(),
 	)
 	bottom := container.NewVBox(
 		widget.NewSeparator(),
-		a.downloadBar.Widget(),
+		container.NewPadded(a.downloadBar.Widget()),
 	)
 
-	return container.NewBorder(top, bottom, nil, nil, a.resultsView.Widget())
+	return container.NewBorder(top, bottom, nil, nil,
+		container.NewPadded(a.resultsView.Widget()),
+	)
 }
 
 // BookKey returns a unique key for selection tracking

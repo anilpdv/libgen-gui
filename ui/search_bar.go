@@ -85,12 +85,13 @@ func NewSearchBar(a *App) *SearchBar {
 	sb.btn = widget.NewButtonWithIcon("Search", theme.SearchIcon(), func() { sb.doSearchPage(1) })
 	sb.btn.Importance = widget.HighImportance
 
-	sb.settingsBtn = widget.NewButtonWithIcon("…", theme.SettingsIcon(), func() {
+	// Mirrors settings button – styled as a secondary action
+	sb.settingsBtn = widget.NewButtonWithIcon("Mirrors: …", theme.SettingsIcon(), func() {
 		if sb.app != nil {
-			sb.app.ShowSettingsDialog()
+			sb.app.ShowMirrorsDialog()
 		}
 	})
-	sb.settingsBtn.Importance = widget.LowImportance
+	sb.settingsBtn.Importance = widget.DangerImportance // starts red (0/N) until probed
 
 	// Subscribe to live mirror health updates
 	healthMgr := GetMirrorHealthManager()
@@ -131,7 +132,6 @@ func (sb *SearchBar) updateMirrorStatusBadge(active, total int) {
 	}
 	sb.settingsBtn.Refresh()
 }
-
 func (sb *SearchBar) isMobile() bool {
 	if sb.app != nil {
 		return sb.app.IsMobile()
@@ -143,8 +143,7 @@ func (sb *SearchBar) isMobile() bool {
 }
 
 func (sb *SearchBar) Widget() fyne.CanvasObject {
-	// Clean, subtle status bar:
-	// [Activity spinner] [Status message] ... [Browser button] [Retry button]
+	// Status row: [Activity spinner] [Status message] ... [Browser button] [Retry button]
 	actionsRow := container.NewHBox(sb.browserBtn, sb.retryBtn)
 	sb.statusRow = container.NewBorder(
 		nil, nil,
@@ -171,7 +170,14 @@ func (sb *SearchBar) Widget() fyne.CanvasObject {
 		return container.NewVBox(searchRow, formatRow)
 	}
 
-	// Desktop layout:
+	// Desktop layout – modern well-spaced pill-shaped search bar feel:
+	// [Search Entry ──────────────────────] [Format ▾] [🔍 Search] [⚙ Mirrors: N/N]
+	// [Status line with spinner / errors / retry buttons]
+	sb.entry.SetMinRowsVisible(1)
+
+	// Give the settings button a subtle border-only look
+	sb.settingsBtn.Importance = widget.LowImportance
+
 	searchRow := container.NewBorder(
 		nil, nil, nil,
 		container.NewHBox(sb.format, sb.btn, sb.settingsBtn),

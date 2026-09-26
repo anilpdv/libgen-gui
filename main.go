@@ -5,7 +5,6 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/theme"
 	"libgen-gui/ui"
 )
 
@@ -17,7 +16,7 @@ func setupApp(a fyne.App) (fyne.Window, *ui.App) {
 	if len(appIconBytes) > 0 {
 		a.SetIcon(fyne.NewStaticResource("icon.png", appIconBytes))
 	}
-	a.Settings().SetTheme(theme.DarkTheme())
+	a.Settings().SetTheme(&ui.ModernTheme{})
 
 	w := a.NewWindow("LibGen Downloader v2.0")
 	if len(appIconBytes) > 0 {
