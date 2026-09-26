@@ -165,9 +165,9 @@ func (a *App) ShowSettingsDialog() {
 	ShowFullSettingsDialog(a, 0)
 }
 
-// ShowMirrorsDialog displays the settings modal directly focused on the Mirrors tab.
+// ShowMirrorsDialog displays the dedicated live mirror status dialog.
 func (a *App) ShowMirrorsDialog() {
-	ShowFullSettingsDialog(a, 1)
+	ShowMirrorStatusDialog(a)
 }
 
 func (a *App) Build() fyne.CanvasObject {

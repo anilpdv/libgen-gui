@@ -21,12 +21,12 @@ import (
 // SearchBar contains the query input, format picker, search button,
 // subtle activity spinner, and user-friendly status/error display with retry.
 type SearchBar struct {
-	app       *App
-	entry     *widget.Entry
-	format    *widget.Select
-	btn       *widget.Button
-	activity  *widget.Activity
-	status     *widget.Label
+	app         *App
+	entry       *widget.Entry
+	format      *widget.Select
+	btn         *widget.Button
+	activity    *widget.Activity
+	status      *widget.Label
 	retryBtn    *widget.Button
 	browserBtn  *widget.Button
 	settingsBtn *widget.Button
@@ -175,8 +175,7 @@ func (sb *SearchBar) Widget() fyne.CanvasObject {
 	// [Status line with spinner / errors / retry buttons]
 	sb.entry.SetMinRowsVisible(1)
 
-	// Give the settings button a subtle border-only look
-	sb.settingsBtn.Importance = widget.LowImportance
+	// Do NOT override settingsBtn.Importance here — let updateMirrorStatusBadge control it.
 
 	searchRow := container.NewBorder(
 		nil, nil, nil,
