@@ -29,6 +29,113 @@ func TestSanitizeFilename(t *testing.T) {
 	}
 }
 
+func TestLocation_Validation(t *testing.T) {
+	desktopValid := Location{
+		Kind:        LocationDesktopPath,
+		Path:        "/tmp/downloads",
+		DisplayName: "/tmp/downloads",
+	}
+	if err := desktopValid.Validate(); err != nil {
+		t.Errorf("expected valid desktop location, got %v", err)
+	}
+
+	desktopEmpty := Location{
+		Kind:        LocationDesktopPath,
+		Path:        "",
+		DisplayName: "empty",
+	}
+	if err := desktopEmpty.Validate(); err == nil {
+		t.Errorf("expected error for empty desktop path, got nil")
+	}
+
+	safValid := Location{
+		Kind:        LocationAndroidSAF,
+		URI:         "content://com.android.externalstorage.documents/tree/primary:Books",
+		DisplayName: "Books",
+	}
+	if err := safValid.Validate(); err != nil {
+		t.Errorf("expected valid SAF location, got %v", err)
+	}
+
+	safEmpty := Location{
+		Kind:        LocationAndroidSAF,
+		URI:         "",
+		DisplayName: "Empty SAF",
+	}
+	if err := safEmpty.Validate(); err == nil {
+		t.Errorf("expected error for empty SAF URI, got nil")
+	}
+}
+
+func TestMutableTargetProvider(t *testing.T) {
+	first := Location{
+		Kind:        LocationDesktopPath,
+		Path:        "/tmp/one",
+		DisplayName: "/tmp/one",
+	}
+
+	provider, err := NewMutableTargetProvider(first)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	second := Location{
+		Kind:        LocationDesktopPath,
+		Path:        "/tmp/two",
+		DisplayName: "/tmp/two",
+	}
+
+	if err := provider.Set(second); err != nil {
+		t.Fatal(err)
+	}
+
+	current, err := provider.Current()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if current.Path != second.Path {
+		t.Fatalf("expected %q, got %q", second.Path, current.Path)
+	}
+}
+
+func TestStorageFactory_CachingAndResolution(t *testing.T) {
+	tmpDir := t.TempDir()
+	factory := NewStorageFactory()
+
+	loc := Location{
+		Kind:        LocationDesktopPath,
+		Path:        tmpDir,
+		DisplayName: tmpDir,
+	}
+
+	s1, err := factory.For(loc)
+	if err != nil {
+		t.Fatalf("factory.For failed: %v", err)
+	}
+
+	s2, err := factory.For(loc)
+	if err != nil {
+		t.Fatalf("factory.For second failed: %v", err)
+	}
+
+	if s1 != s2 {
+		t.Errorf("expected factory to return cached storage instance")
+	}
+}
+
+func TestValidateDesktopDirectory(t *testing.T) {
+	tmpDir := t.TempDir()
+	if err := ValidateDesktopDirectory(tmpDir); err != nil {
+		t.Errorf("expected temp dir to be writable, got %v", err)
+	}
+
+	nonExistent := filepath.Join(tmpDir, "non_existent_folder_xyz")
+	if err := ValidateDesktopDirectory(nonExistent); err == nil {
+		t.Errorf("expected error for non existent folder, got nil")
+	}
+}
+
 func TestFileSystemStorage_CRUDAndAtomicCommit(t *testing.T) {
 	tmpDir := t.TempDir()
 	store, err := NewFileSystemStorage(tmpDir)
