@@ -1,3 +1,5 @@
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/libgen-gui'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
@@ -5,7 +7,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  basePath: process.env.NEXT_PUBLIC_BASE_PATH || '',
+  basePath: basePath === '/' ? '' : basePath,
+  assetPrefix: basePath === '/' ? '' : basePath,
   trailingSlash: true,
 }
 
