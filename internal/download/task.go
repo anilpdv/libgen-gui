@@ -13,17 +13,18 @@ import (
 
 // Task represents an individual download work unit.
 type Task struct {
-	ID          string    `json:"id"`
-	Title       string    `json:"title"`
-	Authors     []string  `json:"authors"`
-	DownloadURL string    `json:"download_url"`
-	PageURL     string    `json:"page_url"`
-	Filename    string    `json:"filename"`
-	Extension   string    `json:"extension"`
-	Md5         string    `json:"md5"`
-	CreatedAt   time.Time `json:"created_at"`
-	StartedAt   time.Time `json:"started_at"`
-	CompletedAt time.Time `json:"completed_at"`
+	ID          string           `json:"id"`
+	Title       string           `json:"title"`
+	Authors     []string         `json:"authors"`
+	DownloadURL string           `json:"download_url"`
+	PageURL     string           `json:"page_url"`
+	Filename    string           `json:"filename"`
+	Extension   string           `json:"extension"`
+	Md5         string           `json:"md5"`
+	Destination storage.Location `json:"destination"`
+	CreatedAt   time.Time        `json:"created_at"`
+	StartedAt   time.Time        `json:"started_at"`
+	CompletedAt time.Time        `json:"completed_at"`
 
 	mu         sync.RWMutex
 	state      State
@@ -38,6 +39,11 @@ type Task struct {
 
 // NewTask initializes a new Task with a sanitized filename and initial queued state.
 func NewTask(id, title string, authors []string, downloadURL, pageURL, md5, ext string, totalBytes int64) *Task {
+	return NewTaskWithDestination(id, title, authors, downloadURL, pageURL, md5, ext, totalBytes, storage.Location{})
+}
+
+// NewTaskWithDestination initializes a new Task capturing its specific download destination.
+func NewTaskWithDestination(id, title string, authors []string, downloadURL, pageURL, md5, ext string, totalBytes int64, dest storage.Location) *Task {
 	if ext == "" {
 		ext = "pdf"
 	}
@@ -60,6 +66,7 @@ func NewTask(id, title string, authors []string, downloadURL, pageURL, md5, ext 
 		Filename:    filename,
 		Extension:   strings.ToLower(ext),
 		Md5:         strings.ToLower(md5),
+		Destination: dest,
 		CreatedAt:   time.Now(),
 		state:       StateQueued,
 	}
