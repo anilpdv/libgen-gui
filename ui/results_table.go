@@ -25,12 +25,14 @@ type ResultsView struct {
 	empty *widget.Label
 	wrap  *fyne.Container
 
-	headerCheck *widget.Check
-	header      *fyne.Container
-	prevBtn     *widget.Button
-	nextBtn     *widget.Button
-	pageLbl     *widget.Label
-	main        *fyne.Container
+	headerCheck    *widget.Check
+	header         *fyne.Container
+	prevBtn        *widget.Button
+	nextBtn        *widget.Button
+	pageLbl        *widget.Label
+	footer         fyne.CanvasObject
+	tableContainer fyne.CanvasObject
+	main           *fyne.Container
 
 	sortCol    string
 	sortAsc    bool
@@ -214,8 +216,23 @@ func NewResultsView(a *App) *ResultsView {
 	}
 
 	rv.wrap = container.NewStack(rv.empty)
+	rv.footer = footer
+	rv.tableContainer = container.NewBorder(rv.header, nil, nil, nil, rv.wrap)
 	rv.main = container.NewBorder(rv.header, footer, nil, nil, rv.wrap)
 	return rv
+}
+
+// TableWidget returns the header and expanding list without the bottom pagination toolbar.
+func (rv *ResultsView) TableWidget() fyne.CanvasObject {
+	if rv.tableContainer == nil {
+		rv.tableContainer = container.NewBorder(rv.header, nil, nil, nil, rv.wrap)
+	}
+	return rv.tableContainer
+}
+
+// PaginationWidget returns the compact pagination toolbar.
+func (rv *ResultsView) PaginationWidget() fyne.CanvasObject {
+	return rv.footer
 }
 
 func (rv *ResultsView) Widget() fyne.CanvasObject {

@@ -195,19 +195,23 @@ func (a *App) Build() fyne.CanvasObject {
 		}()
 	}
 
-	// Modern layout: padded search bar on top, padded results in the center,
-	// padded download bar pinned to the bottom with a subtle divider.
 	top := container.NewVBox(
-		container.NewPadded(a.searchBar.Widget()),
+		a.searchBar.Widget(),
 		widget.NewSeparator(),
 	)
 	bottom := container.NewVBox(
 		widget.NewSeparator(),
-		container.NewPadded(a.downloadBar.Widget()),
+		a.resultsView.PaginationWidget(),
+		widget.NewSeparator(),
+		a.downloadBar.Widget(),
 	)
 
-	return container.NewBorder(top, bottom, nil, nil,
-		container.NewPadded(a.resultsView.Widget()),
+	return container.NewBorder(
+		top,
+		bottom,
+		nil,
+		nil,
+		a.resultsView.TableWidget(),
 	)
 }
 
