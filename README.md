@@ -34,12 +34,25 @@ Built with **Go** and the **Fyne v2** vector UI toolkit for 100% native performa
 ## ✨ Key Features (v2.0.0)
 
 - **Decoupled Architecture**: Full clean-architecture separation (`internal/network`, `internal/storage`, `internal/search`, `internal/download`, `internal/settings`, `internal/app`).
+- **Configurable Download Destinations**: 
+  - Desktop: choose any writable local directory.
+  - Android: choose a folder through the Storage Access Framework (SAF).
+  - Existing queued downloads retain their original destination captured at enqueue time.
+  - New downloads automatically use the newly selected destination.
+  - Selected destination persists across application restarts.
 - **Multi-Mirror Automatic Failover**: Continuous background latency probing and automatic failover across official mirrors (`libgen.is`, `libgen.rs`, `libgen.st`, `libgen.li`).
 - **Atomic Resumable Downloads**: Temporary `.part` file isolation with HTTP Range chunk resumption and atomic rename upon completion.
 - **Crash-Safe Queue Persistence**: Thread-safe serialized FIFO download queue backed by an atomic `.tmp` JSON ledger.
 - **Android Storage Access Framework (SAF)**: Native `DocumentFile` scoped storage and custom folder tree URI permissions for Android 10 through 15.
 - **Debounced Instant Search**: Multi-field search across title, author, series, publisher, year, ISBN, and MD5 with instant format badges.
 - **Zero Webview Overhead**: Compiles to a single static binary consuming less than 35MB RAM, powered by OpenGL/Metal hardware acceleration.
+
+### Download Destination Behavior
+Changing the download location does not move active or queued downloads. Existing tasks continue using the destination captured when they were added. New tasks use the newly selected location.
+
+### Troubleshooting
+#### Android says folder permission was lost
+Android can revoke access to a previously selected document tree. Open **Settings → Downloads → Change Folder** and select the folder again.
 
 ---
 
