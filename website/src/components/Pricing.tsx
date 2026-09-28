@@ -3,10 +3,11 @@ import { Container } from '@/components/Container'
 
 const downloadOptions = [
   {
-    name: 'macOS & Desktop App',
-    badge: 'v2.0.1 Native Build',
+    name: 'macOS Desktop App',
+    badge: 'TESTED RELEASE',
+    badgeClass: 'bg-emerald-950 text-emerald-400 border border-emerald-800/60',
     description:
-      'Native desktop application for Apple Silicon & Intel macOS. Features live mirror failover, background queue, and customizable destination settings.',
+      'Universal native desktop binary for Apple Silicon & Intel macOS. Features live mirror failover, background queue, and customizable destination settings.',
     specs: [
       'Universal macOS .app bundle & zip',
       'Instant debounced multi-field search',
@@ -21,15 +22,16 @@ const downloadOptions = [
     featured: true,
   },
   {
-    name: 'Android App (APK)',
-    badge: 'Scoped SAF Ready',
+    name: 'Android App',
+    badge: 'TESTED RELEASE',
+    badgeClass: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
     description:
-      'Native mobile client with Android Storage Access Framework (SAF) integration for Android 10 through Android 15 phones & tablets.',
+      'Native mobile client with Android Storage Access Framework (SAF) integration for Android 8.0 (API 26) through Android 15 (API 35) phones & tablets.',
     specs: [
       'DocumentFile Scoped Storage (SAF)',
       'Touch-optimized responsive list cards',
       'Direct save to Books & e-reader folders',
-      'ARM64 & Universal APK packages',
+      'ARM64 APK package (v2.0.1)',
       '100% Free & Open Source',
     ],
     primaryAction: {
@@ -39,10 +41,11 @@ const downloadOptions = [
     featured: false,
   },
   {
-    name: 'Source & Developer',
-    badge: 'MIT Open Source',
+    name: 'Build from Source',
+    badge: 'BUILD FROM SOURCE',
+    badgeClass: 'bg-slate-100 text-slate-700 border border-slate-200',
     description:
-      'Clone and build from source for Linux, Windows, or macOS. Full access to internal/download, internal/storage, and pkg/libgen packages.',
+      'Clone the repository, run the test suite, or package the application for a supported target including Linux (GTK/Wayland) and Windows.',
     specs: [
       'Clean Go 1.22+ architecture',
       'Fyne v2 native vector UI toolkit',
@@ -86,7 +89,7 @@ export function Pricing() {
             Free and open source. No ads. No telemetry.
           </h2>
           <p className="mt-4 text-base text-gray-600 leading-relaxed sm:text-lg">
-            Choose your platform below. All releases are self-contained with zero runtime dependencies.
+            Use the application without subscriptions, advertising, or built-in analytics. Platform-specific packages and build requirements are documented separately.
           </p>
         </div>
 
@@ -106,11 +109,7 @@ export function Pricing() {
                     {option.name}
                   </h3>
                   <span
-                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                      option.featured
-                        ? 'bg-cyan-950 text-cyan-400 border border-cyan-800/60'
-                        : 'bg-cyan-50 text-cyan-700 border border-cyan-200'
-                    }`}
+                    className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full ${option.badgeClass}`}
                   >
                     {option.badge}
                   </span>

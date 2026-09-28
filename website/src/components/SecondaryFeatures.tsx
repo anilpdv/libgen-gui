@@ -2,39 +2,45 @@ import { Container } from '@/components/Container'
 
 const features = [
   {
+    category: 'NETWORKING',
     name: 'Multi-Field Advanced Search',
     description:
-      'Search seamlessly across Title, Author, Series, Publisher, Year, ISBN, or MD5 checksum with immediate debounced queries.',
+      'Search seamlessly across Title, Author, Series, Publisher, Year, ISBN, or MD5 checksum with immediate debounced queries and format filtering.',
     icon: SearchIcon,
   },
   {
+    category: 'DOWNLOADS',
     name: 'Atomic Resumable Downloads',
     description:
       'Download safely with temporary .part file isolation, HTTP Range chunk resumption, and atomic rename upon verified completion.',
     icon: DownloadIcon,
   },
   {
+    category: 'STORAGE',
     name: 'Android Scoped Storage (SAF)',
     description:
-      'Native DocumentFile and Storage Access Framework integration ensuring direct folder selection on Android 10 through Android 15.',
+      'Native DocumentFile and Storage Access Framework integration ensuring direct folder selection across Android 8.0 to Android 15.',
     icon: AndroidIcon,
   },
   {
+    category: 'INTERFACE',
     name: 'Decoupled Clean Architecture',
     description:
-      'Modular Go packages separating network mirrors, download queues, storage targets, and Fyne vector UI into testable layers.',
+      'Modular Go packages separating network mirrors, download queues, storage targets, and Fyne vector UI into maintainable, testable layers.',
     icon: ArchitectureIcon,
   },
   {
+    category: 'RESILIENCE',
     name: 'Continuous Mirror Health Prober',
     description:
-      'Probes mirror response times in the background with exponential backoff and automatic failover for degraded or blocked nodes.',
+      'Probes mirror response times in the background with exponential backoff and automatic failover for degraded or blocked endpoints.',
     icon: ShieldIcon,
   },
   {
-    name: 'Persistent Crash-Safe Queue',
+    category: 'INTEGRATION',
+    name: 'Native File Opening & Handlers',
     description:
-      'Atomic JSON ledger preserves your FIFO download queue and captures per-task destinations across application restarts.',
+      'Direct OS integration to open downloaded PDFs, EPUBs, and DJVUs in your system viewer or reveal files in Finder/Explorer upon completion.',
     icon: QueueIcon,
   },
 ]
@@ -121,17 +127,24 @@ export function SecondaryFeatures() {
             return (
               <div
                 key={feature.name}
-                className="rounded-2xl border border-gray-200/80 bg-white p-6 shadow-2xs hover:border-cyan-400/80 hover:shadow-md transition-all duration-200"
+                className="rounded-2xl border border-gray-200/80 bg-white p-6 shadow-2xs hover:border-cyan-400/80 hover:shadow-md transition-all duration-200 flex flex-col justify-between"
               >
-                <div className="rounded-xl bg-cyan-50 p-3 w-fit text-cyan-600">
-                  <Icon className="h-6 w-6" />
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="rounded-xl bg-cyan-50 p-3 w-fit text-cyan-600">
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <span className="text-[11px] font-bold tracking-wider uppercase text-cyan-600">
+                      {feature.category}
+                    </span>
+                  </div>
+                  <h3 className="mt-5 text-base font-semibold text-gray-900">
+                    {feature.name}
+                  </h3>
+                  <p className="mt-2 text-sm text-gray-600 leading-relaxed">
+                    {feature.description}
+                  </p>
                 </div>
-                <h3 className="mt-5 text-base font-semibold text-gray-900">
-                  {feature.name}
-                </h3>
-                <p className="mt-2 text-sm text-gray-600 leading-relaxed">
-                  {feature.description}
-                </p>
               </div>
             )
           })}

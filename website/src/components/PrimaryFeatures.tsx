@@ -1,36 +1,40 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import clsx from 'clsx'
 
-import { AppScreen } from '@/components/AppScreen'
 import { Container } from '@/components/Container'
-import { PhoneFrame } from '@/components/PhoneFrame'
+import mirrorHealthImg from '@/images/screenshots/mirror-health.webp'
+import desktopSearchImg from '@/images/screenshots/desktop-search.webp'
 
 const features = [
   {
-    name: 'Multi-Mirror Failover & Live Prober',
+    name: 'Multi-Mirror Health Checking',
+    category: 'RESILIENCE',
     description:
-      'Continuous background latency probing and automatic failover across official mirrors ensure your searches and downloads never stall or drop packets.',
+      'Periodically measures endpoint availability and round-trip latency across official mirrors, exposing real-time health indicators without manual intervention.',
     icon: MirrorProbeIcon,
+    badge: 'Live Latency Prober',
+    panel: 'mirror',
+  },
+  {
+    name: 'Automatic Failover & Retry Policy',
+    category: 'NETWORKING',
+    description:
+      'Seamlessly switches to another healthy mirror when an active endpoint times out or drops packets, adhering to strict user-configurable retry limits.',
+    icon: FailoverIcon,
     badge: 'Zero Dead Mirrors',
-    screen: MirrorScreen,
+    panel: 'failover',
   },
   {
-    name: 'Resumable Queue & Range Requests',
+    name: 'Serialized Resumable Queue',
+    category: 'DOWNLOADS',
     description:
-      'A robust serialized FIFO queue with pause, resume, cancel, and HTTP Range support. Interrupted downloads seamlessly pick up right where they left off.',
+      'Organizes active and pending downloads with HTTP Range byte-level resumption, atomic .part safety, and graceful cancellation controls.',
     icon: QueueDownloadIcon,
-    badge: 'Atomic .part Files',
-    screen: QueueScreen,
-  },
-  {
-    name: 'Instant Multi-Field Book Search',
-    description:
-      'Debounced search across title, author, series, publisher, ISBN, and MD5 with live extension and size badges, direct 1-click downloads, and metadata inspection.',
-    icon: SearchBookIcon,
-    badge: 'Sub-50ms Response',
-    screen: SearchScreen,
+    badge: 'Atomic .part Safety',
+    panel: 'queue',
   },
 ]
 
@@ -44,6 +48,20 @@ function MirrorProbeIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
         stroke="#22d3ee"
         strokeWidth="2"
         strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function FailoverIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path
+        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+        stroke="#22d3ee"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   )
@@ -63,172 +81,9 @@ function QueueDownloadIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   )
 }
 
-function SearchBookIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <path
-        d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm6-2l4 4"
-        stroke="#22d3ee"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
-
-function MirrorScreen() {
-  return (
-    <AppScreen className="w-full">
-      <AppScreen.Header>
-        <AppScreen.Title>Mirror Health</AppScreen.Title>
-        <AppScreen.Subtitle>
-          <span className="text-emerald-400 font-semibold">3 of 3 Active</span> • 115ms avg latency
-        </AppScreen.Subtitle>
-      </AppScreen.Header>
-      <AppScreen.Body>
-        <div className="divide-y divide-gray-100">
-          {[
-            { url: 'https://libgen.is', latency: '82 ms', status: 'Optimal (Primary)', color: 'bg-emerald-500' },
-            { url: 'https://libgen.rs', latency: '115 ms', status: 'Healthy (Failover 1)', color: 'bg-emerald-500' },
-            { url: 'https://libgen.st', latency: '178 ms', status: 'Healthy (Failover 2)', color: 'bg-emerald-500' },
-            { url: 'https://libgen.li', latency: '240 ms', status: 'Active (Fallback)', color: 'bg-cyan-500' },
-          ].map((mirror) => (
-            <div key={mirror.url} className="flex items-center gap-3 px-4 py-3">
-              <span className={`inline-block h-2 w-2 rounded-full ${mirror.color}`} />
-              <div className="flex-auto min-w-0">
-                <div className="text-xs font-semibold text-gray-900 truncate">{mirror.url}</div>
-                <div className="text-[10px] text-gray-500">{mirror.status}</div>
-              </div>
-              <div className="flex-none text-right">
-                <div className="text-xs font-mono font-medium text-gray-900">{mirror.latency}</div>
-                <div className="text-[10px] text-emerald-600 font-medium">99.9%</div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="p-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-600">
-          <span>Background Auto-Probe</span>
-          <span className="font-semibold text-cyan-600">Every 30s</span>
-        </div>
-      </AppScreen.Body>
-    </AppScreen>
-  )
-}
-
-function QueueScreen() {
-  return (
-    <AppScreen className="w-full">
-      <AppScreen.Header>
-        <AppScreen.Title>Download Queue</AppScreen.Title>
-        <AppScreen.Subtitle>
-          <span className="text-cyan-400 font-semibold">2 Downloading</span> • 1 Queued
-        </AppScreen.Subtitle>
-      </AppScreen.Header>
-      <AppScreen.Body>
-        <div className="p-3.5 space-y-3">
-          <div className="rounded-xl border border-gray-100 bg-white p-3 shadow-2xs">
-            <div className="flex justify-between items-start">
-              <div>
-                <h4 className="text-xs font-semibold text-gray-900 line-clamp-1">
-                  Computer Systems: A Programmer’s Perspective
-                </h4>
-                <p className="text-[10px] text-gray-500 mt-0.5">PDF • 14.8 MB / 19.4 MB</p>
-              </div>
-              <span className="text-[10px] font-semibold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded-full">
-                76%
-              </span>
-            </div>
-            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-              <div className="h-full bg-cyan-500 rounded-full" style={{ width: '76%' }} />
-            </div>
-            <div className="mt-1.5 flex justify-between text-[9px] text-gray-500">
-              <span>3.4 MB/s</span>
-              <span>Chunk 4/5 • Resumable</span>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-gray-100 bg-white p-3 shadow-2xs">
-            <div className="flex justify-between items-start">
-              <div>
-                <h4 className="text-xs font-semibold text-gray-900 line-clamp-1">
-                  Designing Data-Intensive Applications
-                </h4>
-                <p className="text-[10px] text-gray-500 mt-0.5">EPUB • 8.2 MB / 8.2 MB</p>
-              </div>
-              <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                Completed
-              </span>
-            </div>
-            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-emerald-100">
-              <div className="h-full bg-emerald-500 rounded-full w-full" />
-            </div>
-            <div className="mt-1.5 flex justify-between text-[9px] text-gray-500">
-              <span>Saved to ~/Documents/LibgenBooks</span>
-              <span>MD5 Verified</span>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-gray-100 bg-gray-50 p-2.5 flex justify-between items-center">
-            <span className="text-xs font-medium text-gray-700 line-clamp-1">
-              Structure and Interpretation of Computer Programs
-            </span>
-            <span className="text-[10px] font-medium text-gray-500 bg-gray-200/80 px-2 py-0.5 rounded-full shrink-0 ml-2">
-              Queued
-            </span>
-          </div>
-        </div>
-      </AppScreen.Body>
-    </AppScreen>
-  )
-}
-
-function SearchScreen() {
-  return (
-    <AppScreen className="w-full">
-      <AppScreen.Header>
-        <AppScreen.Title>Book Search</AppScreen.Title>
-        <AppScreen.Subtitle>Query: &quot;Distributed Systems&quot;</AppScreen.Subtitle>
-      </AppScreen.Header>
-      <AppScreen.Body>
-        <div className="p-3">
-          <div className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs text-gray-700 flex items-center gap-2 mb-2.5">
-            <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-gray-400">
-              <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
-            </svg>
-            <span className="text-gray-900 font-medium">Distributed Systems</span>
-          </div>
-
-          <div className="space-y-2">
-            {[
-              { title: 'Distributed Systems: Principles & Paradigms', author: 'Tanenbaum, van Steen', year: '2023', format: 'PDF', size: '18.4 MB' },
-              { title: 'Understanding Distributed Systems, 2nd Edition', author: 'Roberto Vitillo', year: '2022', format: 'EPUB', size: '5.1 MB' },
-              { title: 'Database Internals: Distributed Data Systems', author: 'Alex Petrov', year: '2019', format: 'PDF', size: '14.2 MB' },
-            ].map((book) => (
-              <div key={book.title} className="rounded-lg border border-gray-100 p-2.5 bg-white">
-                <h5 className="text-xs font-semibold text-gray-900 line-clamp-1">{book.title}</h5>
-                <p className="text-[10px] text-gray-500 mt-0.5">{book.author}</p>
-                <div className="mt-1.5 flex items-center justify-between">
-                  <div className="flex gap-1 text-[9px]">
-                    <span className="bg-gray-100 px-1.5 py-0.5 rounded font-mono font-medium">{book.format}</span>
-                    <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">{book.size}</span>
-                    <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">{book.year}</span>
-                  </div>
-                  <span className="bg-cyan-600 text-white text-[9px] font-medium px-2 py-0.5 rounded">
-                    Download
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </AppScreen.Body>
-    </AppScreen>
-  )
-}
-
 export function PrimaryFeatures() {
   let [selectedFeature, setSelectedFeature] = useState(0)
-  let ActiveScreen = features[selectedFeature].screen
+  let activeFeature = features[selectedFeature]
 
   return (
     <section
@@ -249,8 +104,8 @@ export function PrimaryFeatures() {
           </p>
         </div>
 
-        <div className="mt-14 grid grid-cols-1 gap-12 lg:grid-cols-12 lg:items-center">
-          {/* 3 Consistent Cards */}
+        <div className="mt-14 grid grid-cols-1 gap-10 lg:grid-cols-12 lg:items-center">
+          {/* Feature Selector Cards */}
           <div className="lg:col-span-7 space-y-4">
             {features.map((feature, idx) => {
               let isSelected = selectedFeature === idx
@@ -268,15 +123,26 @@ export function PrimaryFeatures() {
                   )}
                 >
                   <div className="flex items-start gap-4">
-                    <div className={clsx('rounded-xl p-2.5 shrink-0', isSelected ? 'bg-cyan-500/20 text-cyan-400' : 'bg-gray-800 text-gray-400')}>
+                    <div
+                      className={clsx(
+                        'rounded-xl p-2.5 shrink-0',
+                        isSelected ? 'bg-cyan-500/20 text-cyan-400' : 'bg-gray-800 text-gray-400',
+                      )}
+                    >
                       <Icon className="h-6 w-6" />
                     </div>
                     <div className="flex-auto">
                       <div className="flex items-center justify-between gap-2">
-                        <h3 className="text-base font-semibold text-white sm:text-lg">
-                          {feature.name}
-                        </h3>
-                        <span className="text-[11px] font-semibold text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded-full border border-cyan-800/50 shrink-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold text-cyan-400 tracking-wider uppercase">
+                            {feature.category}
+                          </span>
+                          <span className="text-gray-600">•</span>
+                          <h3 className="text-base font-semibold text-white sm:text-lg">
+                            {feature.name}
+                          </h3>
+                        </div>
+                        <span className="text-[11px] font-semibold text-cyan-400 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-800/50 shrink-0">
                           {feature.badge}
                         </span>
                       </div>
@@ -290,13 +156,59 @@ export function PrimaryFeatures() {
             })}
           </div>
 
-          {/* Device Screen Preview */}
+          {/* Authentic Feature Preview Container */}
           <div className="lg:col-span-5 flex justify-center">
-            <div className="relative w-full max-w-[340px] drop-shadow-2xl">
-              <div className="absolute inset-0 bg-cyan-500/15 rounded-3xl blur-2xl pointer-events-none" />
-              <PhoneFrame>
-                <ActiveScreen />
-              </PhoneFrame>
+            <div className="relative w-full max-w-[460px] rounded-2xl border border-gray-800 bg-gray-900/90 p-4 shadow-2xl shadow-cyan-950/30 backdrop-blur-md">
+              {/* Glow */}
+              <div className="absolute inset-0 bg-cyan-500/10 rounded-2xl blur-xl pointer-events-none" />
+
+              <div className="relative z-10">
+                <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-800 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="font-semibold text-gray-200">
+                      {selectedFeature === 0
+                        ? 'MIRROR HEALTH & PROBER'
+                        : selectedFeature === 1
+                        ? 'FAILOVER SIMULATION'
+                        : 'SERIALIZED QUEUE STATE'}
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-mono text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/40">
+                    Real Native Dialog
+                  </span>
+                </div>
+
+                {selectedFeature === 0 ? (
+                  <div className="space-y-3">
+                    <div className="overflow-hidden rounded-xl border border-gray-700/80 bg-gray-950">
+                      <Image
+                        src={mirrorHealthImg}
+                        alt="Authentic LibGen GUI Mirror Status Dialog showing live endpoint latencies and health"
+                        className="w-full h-auto object-contain mx-auto"
+                      />
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-gray-950/80 border border-gray-800 text-[11px] text-gray-400 flex items-center justify-between">
+                      <span>Probing interval: <strong className="text-gray-200">30s</strong></span>
+                      <span className="text-emerald-400 font-medium">Automatic Latency Sorting</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="overflow-hidden rounded-xl border border-gray-700/80 bg-gray-950">
+                      <Image
+                        src={desktopSearchImg}
+                        alt="LibGen GUI Desktop interface demonstrating automated search and queue management"
+                        className="w-full h-auto object-cover rounded-lg"
+                      />
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-gray-950/80 border border-gray-800 text-[11px] text-gray-400 flex items-center justify-between">
+                      <span>Queue engine: <strong className="text-gray-200">Thread-Safe FIFO</strong></span>
+                      <span className="text-cyan-400 font-medium">HTTP Range Byte-Level Resume</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

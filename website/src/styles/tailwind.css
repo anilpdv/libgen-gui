@@ -117,6 +117,11 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
+/* Header offset for anchor jumps */
+section[id] {
+  scroll-margin-top: 88px;
+}
+
 /* Reduced Motion Override */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -128,3 +133,4 @@ button:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
