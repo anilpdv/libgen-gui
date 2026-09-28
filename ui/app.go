@@ -388,13 +388,11 @@ func (a *App) onResults(books []*libgen.Book, page int) {
 	a.currentPage = page
 	var msg string
 	if len(books) == 0 {
-		if page > 1 {
-			msg = fmt.Sprintf("0 results — Page %d", page)
-		} else {
-			msg = "0 results"
-		}
+		msg = "0 results"
+	} else if len(books) == 1 {
+		msg = "1 result"
 	} else {
-		msg = fmt.Sprintf("Found %d results — Page %d", len(books), page)
+		msg = fmt.Sprintf("%d results", len(books))
 	}
 	if a.searchBar != nil {
 		a.searchBar.SetStatus(msg)

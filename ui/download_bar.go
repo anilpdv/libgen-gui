@@ -66,10 +66,10 @@ func NewDownloadBar(a *App, defaultSavePath string) *DownloadBar {
 		db.queue = NewDownloadQueue()
 	}
 
-	db.pathLabel = widget.NewLabel(defaultSavePath)
+	db.pathLabel = widget.NewLabel(ShortenPath(defaultSavePath))
 	db.pathLabel.Truncation = fyne.TextTruncateEllipsis
 
-	db.browseBtn = widget.NewButtonWithIcon("Browse…", theme.FolderOpenIcon(), func() {
+	db.browseBtn = widget.NewButtonWithIcon("Change", theme.FolderOpenIcon(), func() {
 		if db.app != nil {
 			ShowDownloadLocationDialog(db.app, false, func(path string) {
 				db.SetSavePath(path)
@@ -149,12 +149,25 @@ func (db *DownloadBar) updateQueueUI() {
 	}
 }
 
+// ShortenPath formats a filesystem path with ~ for user home directory where applicable.
+func ShortenPath(path string) string {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return ""
+	}
+	home, err := os.UserHomeDir()
+	if err == nil && home != "" && strings.HasPrefix(path, home) {
+		return "~" + strings.TrimPrefix(path, home)
+	}
+	return path
+}
+
 // SetSavePath updates the download destination path and updates the UI label.
 func (db *DownloadBar) SetSavePath(path string) {
 	db.mu.Lock()
 	db.savePath = NormalizePath(path)
 	if db.pathLabel != nil {
-		db.pathLabel.SetText(db.savePath)
+		db.pathLabel.SetText(ShortenPath(db.savePath))
 	}
 	db.mu.Unlock()
 }
@@ -177,17 +190,17 @@ func (db *DownloadBar) isMobile() bool {
 }
 
 func (db *DownloadBar) Widget() fyne.CanvasObject {
-	saveToLbl := widget.NewLabelWithStyle("Save to:", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	folderIcon := widget.NewIcon(theme.FolderIcon())
 
 	if db.isMobile() {
 		// Mobile layout:
-		// Row 1: Save-to destination + Browse button
+		// Row 1: Folder icon + Save-to destination + Browse button
 		// Row 2: Action buttons (Clear/OpenFolder/Queue on left, Download/Cancel on right)
 		// Row 3: Real-time status text
 		// Row 4: Progress bar
 		pathRow := container.NewBorder(
 			nil, nil,
-			saveToLbl,
+			folderIcon,
 			db.browseBtn,
 			db.pathLabel,
 		)
@@ -203,23 +216,24 @@ func (db *DownloadBar) Widget() fyne.CanvasObject {
 	}
 
 	// Desktop layout:
-	// Top control row:
-	// Left: "Save to:" label (bold)
-	// Center: save path (flexible with ellipsis)
-	// Right: action buttons ([Browse…] [Open in Finder] [Queue] [Clear] [Cancel] [Download])
+	// Clean, compact 1-row toolbar with folder icon, path, and action buttons
 	actionButtons := container.NewHBox(db.browseBtn, db.openFolderBtn, db.queueBtn, db.clearBtn, db.cancelBtn, db.dlBtn)
 
-	controlRow := container.NewBorder(
+	pathSection := container.NewBorder(
 		nil, nil,
-		saveToLbl,
-		actionButtons,
+		folderIcon,
+		nil,
 		db.pathLabel,
 	)
 
-	// Clean vertical layout:
-	// Row 1: Save-to destination & action buttons
-	// Row 2: Real-time status text (single line with ellipsis)
-	// Row 3: Full-width progress bar (only visible during download)
+	controlRow := container.NewBorder(
+		nil, nil,
+		nil,
+		actionButtons,
+		pathSection,
+	)
+
+	// Clean vertical layout without excess height
 	return container.NewVBox(
 		controlRow,
 		db.statusLbl,

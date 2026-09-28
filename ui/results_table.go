@@ -9,6 +9,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"libgen-gui/pkg/libgen"
@@ -175,7 +176,7 @@ func NewResultsView(a *App) *ResultsView {
 		rv.header = container.NewBorder(nil, nil, rv.headerCheck, nil, headerGrid)
 	}
 
-	rv.prevBtn = widget.NewButtonWithIcon("← Prev", theme.NavigateBackIcon(), func() {
+	rv.prevBtn = widget.NewButtonWithIcon("Previous", theme.NavigateBackIcon(), func() {
 		if a.currentPage > 1 {
 			a.searchBar.doSearchPage(a.currentPage - 1)
 		}
@@ -183,7 +184,7 @@ func NewResultsView(a *App) *ResultsView {
 	rv.prevBtn.Importance = widget.LowImportance
 	rv.prevBtn.Disable()
 
-	rv.nextBtn = widget.NewButtonWithIcon("Next →", theme.NavigateNextIcon(), func() {
+	rv.nextBtn = widget.NewButtonWithIcon("Next", theme.NavigateNextIcon(), func() {
 		a.searchBar.doSearchPage(a.currentPage + 1)
 	})
 	rv.nextBtn.Importance = widget.LowImportance
@@ -191,13 +192,26 @@ func NewResultsView(a *App) *ResultsView {
 
 	rv.pageLbl = widget.NewLabelWithStyle("Page 1", fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
 
-	footer := container.NewCenter(
-		container.NewHBox(
+	var footer fyne.CanvasObject
+	if rv.isMobile() {
+		rv.prevBtn.SetText("")
+		rv.nextBtn.SetText("")
+		footer = container.NewHBox(
+			layout.NewSpacer(),
 			rv.prevBtn,
-			container.NewPadded(rv.pageLbl),
+			rv.pageLbl,
 			rv.nextBtn,
-		),
-	)
+			layout.NewSpacer(),
+		)
+	} else {
+		footer = container.NewHBox(
+			layout.NewSpacer(),
+			rv.prevBtn,
+			rv.pageLbl,
+			rv.nextBtn,
+			layout.NewSpacer(),
+		)
+	}
 
 	rv.wrap = container.NewStack(rv.empty)
 	rv.main = container.NewBorder(rv.header, footer, nil, nil, rv.wrap)
