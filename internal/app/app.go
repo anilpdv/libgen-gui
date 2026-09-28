@@ -16,11 +16,14 @@ import (
 
 // Dependencies bundles all domain services for dependency injection.
 type Dependencies struct {
-	Search    search.SearchService
-	Downloads download.DownloadService
-	Settings  settings.SettingsService
-	Mirrors   *network.MirrorManager
-	Storage   storage.Storage
+	Search             search.SearchService
+	Downloads          download.DownloadService
+	Settings           settings.SettingsService
+	SettingsController *settings.Controller
+	Mirrors            *network.MirrorManager
+	Storage            storage.Storage
+	TargetProvider     storage.TargetProvider
+	StorageFactory     storage.Factory
 }
 
 // BuildDefaultDependencies initializes all core infrastructure and services.
@@ -28,22 +31,74 @@ func BuildDefaultDependencies(isMobile bool) Dependencies {
 	httpClient := network.NewClient()
 	mirrorMgr := network.NewMirrorManager(httpClient, network.DefaultSearchMirrors)
 
-	savePath := ui.GetConfiguredSavePath(isMobile)
-	storageService, _ := storage.NewStorage(savePath, isMobile)
+	defaultLoc, _ := storage.ResolveDefaultLocation(isMobile)
+	defaultSettings := settings.Default()
+	if defaultLoc.Kind == storage.LocationAndroidSAF {
+		defaultSettings.StorageURI = defaultLoc.URI
+		defaultSettings.StorageDisplayName = defaultLoc.DisplayName
+	} else {
+		defaultSettings.DownloadLocation = defaultLoc.Path
+		defaultSettings.StorageDisplayName = defaultLoc.DisplayName
+	}
 
-	queueStorePath := filepath.Join(savePath, ".queue.json")
-	queueStore := download.NewJSONQueueStore(queueStorePath)
+	appInstance := fyne.CurrentApp()
+	var settingsRepo settings.Repository
+	if appInstance != nil && appInstance.Preferences() != nil {
+		settingsRepo = settings.NewFyneRepository(appInstance.Preferences(), defaultSettings)
+	} else {
+		settingsRepo = settings.NewMemoryRepository(defaultSettings)
+	}
 
-	downloadMgr := download.NewManager(httpClient, storageService, mirrorMgr, queueStore)
+	loadedSettings, _ := settingsRepo.Load()
+	initialLoc := storage.Location{
+		Kind:        storage.LocationDesktopPath,
+		Path:        loadedSettings.DownloadLocation,
+		URI:         loadedSettings.StorageURI,
+		DisplayName: loadedSettings.StorageDisplayName,
+	}
+	if loadedSettings.StorageURI != "" {
+		initialLoc.Kind = storage.LocationAndroidSAF
+	}
+	if initialLoc.DisplayName == "" {
+		if initialLoc.Path != "" {
+			initialLoc.DisplayName = initialLoc.Path
+		} else {
+			initialLoc = defaultLoc
+		}
+	}
+
+	targetProvider, _ := storage.NewMutableTargetProvider(initialLoc)
+	storageFactory := storage.NewStorageFactory()
+
+	storageService, _ := storageFactory.For(initialLoc)
+
+	queueStorePath := filepath.Join(defaultLoc.Path, ".queue.json")
+	if defaultLoc.Path == "" {
+		queueStorePath = ""
+	}
+	queueStore := download.NewJSONQueueStoreWithTarget(queueStorePath, initialLoc)
+
+	downloadMgr := download.NewManagerWithDependencies(download.Dependencies{
+		HTTPClient:     httpClient,
+		StorageFactory: storageFactory,
+		TargetProvider: targetProvider,
+		MirrorManager:  mirrorMgr,
+		QueueStore:     queueStore,
+	})
+
 	searchSvc := search.NewService(mirrorMgr, httpClient)
-	settingsSvc := settings.NewMemorySettingsService(settings.DefaultSettings(savePath))
+	settingsController := settings.NewController(settingsRepo, nil, storage.NewDesktopLocationOpener(), targetProvider)
+	settingsSvc := settings.NewServiceAdapter(settingsRepo)
 
 	return Dependencies{
-		Search:    searchSvc,
-		Downloads: downloadMgr,
-		Settings:  settingsSvc,
-		Mirrors:   mirrorMgr,
-		Storage:   storageService,
+		Search:             searchSvc,
+		Downloads:          downloadMgr,
+		Settings:           settingsSvc,
+		SettingsController: settingsController,
+		Mirrors:            mirrorMgr,
+		Storage:            storageService,
+		TargetProvider:     targetProvider,
+		StorageFactory:     storageFactory,
 	}
 }
 

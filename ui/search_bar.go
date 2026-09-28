@@ -61,6 +61,7 @@ func NewSearchBar(a *App) *SearchBar {
 
 	sb.status = widget.NewLabel("")
 	sb.status.Wrapping = fyne.TextWrapWord
+	sb.status.Hide()
 
 	sb.retryBtn = widget.NewButtonWithIcon("Retry", theme.ViewRefreshIcon(), func() {
 		sb.retryBtn.Hide()
@@ -190,6 +191,11 @@ func (sb *SearchBar) Widget() fyne.CanvasObject {
 func (sb *SearchBar) SetStatus(msg string) {
 	if sb.status != nil {
 		sb.status.SetText(msg)
+		if msg == "" {
+			sb.status.Hide()
+		} else {
+			sb.status.Show()
+		}
 	}
 }
 

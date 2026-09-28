@@ -113,6 +113,87 @@ func TestPersistence_AtomicSaveAndStartupRecovery(t *testing.T) {
 	}
 }
 
+func TestRecoveredLegacyTaskGetsDefaultDestination(t *testing.T) {
+	task := &Task{
+		ID:    "legacy-task",
+		state: StateQueued,
+	}
+
+	defaultLocation := storage.Location{
+		Kind:        storage.LocationDesktopPath,
+		Path:        "/downloads/default",
+		DisplayName: "Default",
+	}
+
+	if err := MigrateRecoveredTask(task, defaultLocation); err != nil {
+		t.Fatal(err)
+	}
+
+	if task.Destination.Path != defaultLocation.Path {
+		t.Fatalf("legacy task did not receive default destination: got %q, expected %q", task.Destination.Path, defaultLocation.Path)
+	}
+}
+
+func TestQueuedTaskRetainsCapturedDestination(t *testing.T) {
+	first := storage.Location{
+		Kind:        storage.LocationDesktopPath,
+		Path:        "/downloads/first",
+		DisplayName: "First",
+	}
+
+	second := storage.Location{
+		Kind:        storage.LocationDesktopPath,
+		Path:        "/downloads/second",
+		DisplayName: "Second",
+	}
+
+	provider, err := storage.NewMutableTargetProvider(first)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	factory := storage.NewStorageFactory()
+	mgr := NewManagerWithDependencies(Dependencies{
+		StorageFactory: factory,
+		TargetProvider: provider,
+	})
+
+	firstID, err := mgr.Enqueue(DownloadRequest{
+		ID:          "first_task",
+		Title:       "First",
+		Extension:   "pdf",
+		DownloadURL: "https://example.invalid/first",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := provider.Set(second); err != nil {
+		t.Fatal(err)
+	}
+
+	secondID, err := mgr.Enqueue(DownloadRequest{
+		ID:          "second_task",
+		Title:       "Second",
+		Extension:   "pdf",
+		DownloadURL: "https://example.invalid/second",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	firstTask := mgr.Task(firstID)
+	secondTask := mgr.Task(secondID)
+
+	if firstTask.Destination.Path != first.Path {
+		t.Fatalf("first task destination changed unexpectedly: got %s, expected %s", firstTask.Destination.Path, first.Path)
+	}
+
+	if secondTask.Destination.Path != second.Path {
+		t.Fatalf("second task did not use new destination: got %s, expected %s", secondTask.Destination.Path, second.Path)
+	}
+}
+
 func TestManager_ResumableDownloadAndPartCommit(t *testing.T) {
 	payload := strings.Repeat("ChunkData12345678", 500) // 8000 bytes
 	var rangeRequests atomic.Int32

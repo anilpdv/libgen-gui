@@ -1,8 +1,13 @@
 package settings
 
 import (
+	"context"
+	"errors"
 	"testing"
 	"time"
+
+	"fyne.io/fyne/v2/test"
+	"libgen-gui/internal/storage"
 )
 
 func TestSettings_Validation(t *testing.T) {
@@ -18,39 +23,149 @@ func TestSettings_Validation(t *testing.T) {
 	}
 
 	invalidRetries := valid
-	invalidRetries.MaxRetries = 20
+	invalidRetries.RetryCount = 20
 	if err := invalidRetries.Validate(); err == nil {
 		t.Errorf("expected error for retries > 10, got nil")
 	}
+}
 
-	emptyLocation := valid
-	emptyLocation.DownloadLocation = "   "
-	if err := emptyLocation.Validate(); err == nil {
-		t.Errorf("expected error for empty download location, got nil")
+func TestRepositoryPersistsDownloadLocation(t *testing.T) {
+	app := test.NewApp()
+	defer app.Quit()
+
+	defaults := Default()
+	defaults.DownloadLocation = "/default"
+	defaults.StorageDisplayName = "/default"
+
+	repository := NewFyneRepository(app.Preferences(), defaults)
+
+	value := defaults
+	value.DownloadLocation = "/tmp/books"
+	value.StorageDisplayName = "/tmp/books"
+
+	if err := repository.Save(value); err != nil {
+		t.Fatal(err)
+	}
+
+	loaded, err := repository.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if loaded.DownloadLocation != "/tmp/books" {
+		t.Fatalf("expected /tmp/books, got %q", loaded.DownloadLocation)
 	}
 }
 
-func TestMemorySettingsService_CRUD(t *testing.T) {
-	svc := NewMemorySettingsService(DefaultSettings("/tmp/dl"))
+func TestRepositoryPersistsStorageURI(t *testing.T) {
+	app := test.NewApp()
+	defer app.Quit()
 
-	current := svc.GetSettings()
-	if current.MaxRetries != DefaultMaxRetries {
-		t.Errorf("expected default max retries %d, got %d", DefaultMaxRetries, current.MaxRetries)
+	defaults := Default()
+	repository := NewFyneRepository(app.Preferences(), defaults)
+
+	value := defaults
+	value.DownloadLocation = ""
+	value.StorageURI = "content://example/tree/books"
+	value.StorageDisplayName = "Books"
+
+	if err := repository.Save(value); err != nil {
+		t.Fatal(err)
 	}
 
-	current.MaxRetries = 5
-	if err := svc.UpdateSettings(current); err != nil {
-		t.Fatalf("UpdateSettings failed: %v", err)
+	loaded, err := repository.Load()
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	updated := svc.GetSettings()
-	if updated.MaxRetries != 5 {
-		t.Errorf("expected updated retries to be 5, got %d", updated.MaxRetries)
+	if loaded.StorageURI != value.StorageURI {
+		t.Fatalf("expected URI %q, got %q", value.StorageURI, loaded.StorageURI)
+	}
+}
+
+type fakeSelector struct {
+	location storage.Location
+	err      error
+}
+
+func (f *fakeSelector) SelectLocation(ctx context.Context) (storage.Location, error) {
+	return f.location, f.err
+}
+
+type recordingRepository struct {
+	settings  Settings
+	saveCount int
+}
+
+func (r *recordingRepository) Load() (Settings, error) {
+	return r.settings, nil
+}
+
+func (r *recordingRepository) Save(s Settings) error {
+	r.saveCount++
+	r.settings = s
+	return nil
+}
+
+func (r *recordingRepository) Reset() error {
+	return nil
+}
+
+func TestChangeLocationDoesNotSaveWhenCancelled(t *testing.T) {
+	repo := &recordingRepository{
+		settings: Default(),
+	}
+	selector := &fakeSelector{
+		err: storage.ErrSelectionCancelled,
 	}
 
-	_ = svc.ResetSettings()
-	reset := svc.GetSettings()
-	if reset.MaxRetries != DefaultMaxRetries {
-		t.Errorf("expected reset retries to be %d, got %d", DefaultMaxRetries, reset.MaxRetries)
+	provider, _ := storage.NewMutableTargetProvider(storage.Location{
+		Kind:        storage.LocationDesktopPath,
+		Path:        "/initial",
+		DisplayName: "/initial",
+	})
+
+	controller := NewController(repo, selector, nil, provider)
+
+	_, err := controller.ChangeDownloadLocation(context.Background())
+	if !errors.Is(err, storage.ErrSelectionCancelled) {
+		t.Fatalf("expected cancellation error, got %v", err)
+	}
+
+	if repo.saveCount != 0 {
+		t.Fatal("settings were saved after selection cancellation")
+	}
+}
+
+func TestController_ChangeLocationSuccess(t *testing.T) {
+	repo := &recordingRepository{
+		settings: Default(),
+	}
+	selector := &fakeSelector{
+		location: storage.Location{
+			Kind:        storage.LocationDesktopPath,
+			Path:        "/new/folder",
+			DisplayName: "/new/folder",
+		},
+	}
+	provider, _ := storage.NewMutableTargetProvider(storage.Location{
+		Kind:        storage.LocationDesktopPath,
+		Path:        "/initial",
+		DisplayName: "/initial",
+	})
+
+	controller := NewController(repo, selector, nil, provider)
+	loc, err := controller.ChangeDownloadLocation(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if loc.Path != "/new/folder" {
+		t.Errorf("expected location /new/folder, got %s", loc.Path)
+	}
+
+	cur, _ := provider.Current()
+	if cur.Path != "/new/folder" {
+		t.Errorf("expected target provider to have /new/folder, got %s", cur.Path)
 	}
 }

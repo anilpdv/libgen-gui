@@ -195,19 +195,23 @@ func (a *App) Build() fyne.CanvasObject {
 		}()
 	}
 
-	// Modern layout: padded search bar on top, padded results in the center,
-	// padded download bar pinned to the bottom with a subtle divider.
 	top := container.NewVBox(
-		container.NewPadded(a.searchBar.Widget()),
+		a.searchBar.Widget(),
 		widget.NewSeparator(),
 	)
 	bottom := container.NewVBox(
 		widget.NewSeparator(),
-		container.NewPadded(a.downloadBar.Widget()),
+		a.resultsView.PaginationWidget(),
+		widget.NewSeparator(),
+		a.downloadBar.Widget(),
 	)
 
-	return container.NewBorder(top, bottom, nil, nil,
-		container.NewPadded(a.resultsView.Widget()),
+	return container.NewBorder(
+		top,
+		bottom,
+		nil,
+		nil,
+		a.resultsView.TableWidget(),
 	)
 }
 
@@ -388,13 +392,11 @@ func (a *App) onResults(books []*libgen.Book, page int) {
 	a.currentPage = page
 	var msg string
 	if len(books) == 0 {
-		if page > 1 {
-			msg = fmt.Sprintf("0 results — Page %d", page)
-		} else {
-			msg = "0 results"
-		}
+		msg = "0 results"
+	} else if len(books) == 1 {
+		msg = "1 result"
 	} else {
-		msg = fmt.Sprintf("Found %d results — Page %d", len(books), page)
+		msg = fmt.Sprintf("%d results", len(books))
 	}
 	if a.searchBar != nil {
 		a.searchBar.SetStatus(msg)

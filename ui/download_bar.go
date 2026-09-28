@@ -66,10 +66,10 @@ func NewDownloadBar(a *App, defaultSavePath string) *DownloadBar {
 		db.queue = NewDownloadQueue()
 	}
 
-	db.pathLabel = widget.NewLabel(defaultSavePath)
+	db.pathLabel = widget.NewLabel(ShortenPath(defaultSavePath))
 	db.pathLabel.Truncation = fyne.TextTruncateEllipsis
 
-	db.browseBtn = widget.NewButtonWithIcon("Browse…", theme.FolderOpenIcon(), func() {
+	db.browseBtn = widget.NewButtonWithIcon("Change", theme.FolderOpenIcon(), func() {
 		if db.app != nil {
 			ShowDownloadLocationDialog(db.app, false, func(path string) {
 				db.SetSavePath(path)
@@ -121,12 +121,25 @@ func NewDownloadBar(a *App, defaultSavePath string) *DownloadBar {
 
 	db.statusLbl = widget.NewLabel("")
 	db.statusLbl.Truncation = fyne.TextTruncateEllipsis
+	db.statusLbl.Hide()
 
 	db.queue.OnQueueChanged = func() {
 		db.updateQueueUI()
 	}
 
 	return db
+}
+
+func (db *DownloadBar) setStatusText(msg string) {
+	if db.statusLbl == nil {
+		return
+	}
+	db.statusLbl.SetText(msg)
+	if msg == "" {
+		db.statusLbl.Hide()
+	} else {
+		db.statusLbl.Show()
+	}
 }
 
 // updateQueueUI refreshes the queue button visibility and label based on queue state.
@@ -149,12 +162,25 @@ func (db *DownloadBar) updateQueueUI() {
 	}
 }
 
+// ShortenPath formats a filesystem path with ~ for user home directory where applicable.
+func ShortenPath(path string) string {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return ""
+	}
+	home, err := os.UserHomeDir()
+	if err == nil && home != "" && strings.HasPrefix(path, home) {
+		return "~" + strings.TrimPrefix(path, home)
+	}
+	return path
+}
+
 // SetSavePath updates the download destination path and updates the UI label.
 func (db *DownloadBar) SetSavePath(path string) {
 	db.mu.Lock()
 	db.savePath = NormalizePath(path)
 	if db.pathLabel != nil {
-		db.pathLabel.SetText(db.savePath)
+		db.pathLabel.SetText(ShortenPath(db.savePath))
 	}
 	db.mu.Unlock()
 }
@@ -177,17 +203,17 @@ func (db *DownloadBar) isMobile() bool {
 }
 
 func (db *DownloadBar) Widget() fyne.CanvasObject {
-	saveToLbl := widget.NewLabelWithStyle("Save to:", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	folderIcon := widget.NewIcon(theme.FolderIcon())
 
 	if db.isMobile() {
 		// Mobile layout:
-		// Row 1: Save-to destination + Browse button
+		// Row 1: Folder icon + Save-to destination + Browse button
 		// Row 2: Action buttons (Clear/OpenFolder/Queue on left, Download/Cancel on right)
 		// Row 3: Real-time status text
 		// Row 4: Progress bar
 		pathRow := container.NewBorder(
 			nil, nil,
-			saveToLbl,
+			folderIcon,
 			db.browseBtn,
 			db.pathLabel,
 		)
@@ -203,23 +229,24 @@ func (db *DownloadBar) Widget() fyne.CanvasObject {
 	}
 
 	// Desktop layout:
-	// Top control row:
-	// Left: "Save to:" label (bold)
-	// Center: save path (flexible with ellipsis)
-	// Right: action buttons ([Browse…] [Open in Finder] [Queue] [Clear] [Cancel] [Download])
+	// Clean, compact 1-row toolbar with folder icon, path, and action buttons
 	actionButtons := container.NewHBox(db.browseBtn, db.openFolderBtn, db.queueBtn, db.clearBtn, db.cancelBtn, db.dlBtn)
 
-	controlRow := container.NewBorder(
+	pathSection := container.NewBorder(
 		nil, nil,
-		saveToLbl,
-		actionButtons,
+		folderIcon,
+		nil,
 		db.pathLabel,
 	)
 
-	// Clean vertical layout:
-	// Row 1: Save-to destination & action buttons
-	// Row 2: Real-time status text (single line with ellipsis)
-	// Row 3: Full-width progress bar (only visible during download)
+	controlRow := container.NewBorder(
+		nil, nil,
+		nil,
+		actionButtons,
+		pathSection,
+	)
+
+	// Clean vertical layout without excess height
 	return container.NewVBox(
 		controlRow,
 		db.statusLbl,
@@ -266,7 +293,7 @@ func (db *DownloadBar) SetSelectedBooks(books []*libgen.Book) {
 		}
 		db.dlBtn.Disable()
 		db.dlBtn.SetText("Download")
-		db.statusLbl.SetText("")
+		db.setStatusText("")
 	} else {
 		db.openFolderBtn.Hide()
 		if db.clearBtn != nil {
@@ -277,11 +304,11 @@ func (db *DownloadBar) SetSelectedBooks(books []*libgen.Book) {
 			db.dlBtn.Enable()
 			db.dlBtn.SetText("Download (1)")
 			b := books[0]
-			db.statusLbl.SetText(fmt.Sprintf("Selected: %s [%s]", truncate(b.Title, 60), strings.ToLower(b.Extension)))
+			db.setStatusText(fmt.Sprintf("Selected: %s [%s]", truncate(b.Title, 60), strings.ToLower(b.Extension)))
 		} else {
 			db.dlBtn.Enable()
 			db.dlBtn.SetText(fmt.Sprintf("Download (%d books)", count))
-			db.statusLbl.SetText(fmt.Sprintf("Selected: %d books ready to download", count))
+			db.setStatusText(fmt.Sprintf("Selected: %d books ready to download", count))
 		}
 	}
 
@@ -507,7 +534,7 @@ func (db *DownloadBar) EnqueueBooks(books []*libgen.Book) {
 		} else {
 			db.mu.Unlock()
 			db.statusLbl.Importance = widget.DangerImportance
-			db.statusLbl.SetText(fmt.Sprintf("Save directory not writable: %s", saveDir))
+			db.setStatusText(fmt.Sprintf("Save directory not writable: %s", saveDir))
 			db.showFailureModal(len(books), fmt.Errorf("storage directory '%s' is not writable. Please choose another location with Browse", saveDir))
 			return
 		}
@@ -532,9 +559,9 @@ func (db *DownloadBar) EnqueueBooks(books []*libgen.Book) {
 		pending := q.GetPendingCount()
 		db.statusLbl.Importance = widget.MediumImportance
 		if len(books) == 1 {
-			db.statusLbl.SetText(fmt.Sprintf("Added \"%s\" to queue (%d in queue)", truncate(books[0].Title, 35), pending))
+			db.setStatusText(fmt.Sprintf("Added \"%s\" to queue (%d in queue)", truncate(books[0].Title, 35), pending))
 		} else {
-			db.statusLbl.SetText(fmt.Sprintf("Added %d books to queue (%d in queue)", len(books), pending))
+			db.setStatusText(fmt.Sprintf("Added %d books to queue (%d in queue)", len(books), pending))
 		}
 		if db.queueBtn != nil {
 			db.queueBtn.SetText(fmt.Sprintf("Queue (%d)", pending))
@@ -557,7 +584,7 @@ func (db *DownloadBar) doDownload() {
 	if len(db.selectedBooks) == 0 {
 		db.mu.Unlock()
 		db.statusLbl.Importance = widget.DangerImportance
-		db.statusLbl.SetText("Please select at least one book first")
+		db.setStatusText("Please select at least one book first")
 		return
 	}
 
@@ -593,6 +620,7 @@ func (db *DownloadBar) startQueueWorker() {
 	db.progress.Show()
 	db.progress.SetValue(0)
 	db.statusLbl.Importance = widget.MediumImportance
+	db.setStatusText("Preparing download…")
 
 	pendingCount := db.queue.GetPendingCount()
 	if pendingCount > 0 {
@@ -724,9 +752,9 @@ func (db *DownloadBar) startQueueWorker() {
 				if shouldUpdateText {
 					baseStatus := formatDownloadStatus(active, curTotal, exp)
 					if pendingInQueue > 0 {
-						db.statusLbl.SetText(fmt.Sprintf("%s • %d queued", baseStatus, pendingInQueue))
+						db.setStatusText(fmt.Sprintf("%s • %d queued", baseStatus, pendingInQueue))
 					} else {
-						db.statusLbl.SetText(baseStatus)
+						db.setStatusText(baseStatus)
 					}
 				}
 				if pendingInQueue > 0 && db.queueBtn != nil {
@@ -804,12 +832,16 @@ func (db *DownloadBar) startQueueWorker() {
 
 						if err != nil {
 							if ctx.Err() != nil {
+								db.queue.mu.Lock()
 								tsk.item.Status = QueueStatusCancelled
+								db.queue.mu.Unlock()
 								return
 							}
 							atomic.AddInt64(&batchFailed, 1)
+							db.queue.mu.Lock()
 							tsk.item.Status = QueueStatusFailed
 							tsk.item.Error = err
+							db.queue.mu.Unlock()
 							errMu.Lock()
 							if batchErr == nil {
 								batchErr = err
@@ -824,15 +856,19 @@ func (db *DownloadBar) startQueueWorker() {
 						}
 
 						atomic.AddInt64(&batchSuccessful, 1)
+						db.queue.mu.Lock()
 						tsk.item.Status = QueueStatusCompleted
 						tsk.item.Progress = 1.0
 						tsk.item.BytesDownloaded = atomic.LoadInt64(&bookBytesRead)
+						db.queue.mu.Unlock()
 						updateProgressAndStatus(0, true)
 						db.removeSelectedBook(b)
 
+						errMu.Lock()
 						if firstSuccessBook == nil {
 							firstSuccessBook = b
 						}
+						errMu.Unlock()
 					}
 				}()
 			}
@@ -861,7 +897,7 @@ func (db *DownloadBar) startQueueWorker() {
 			if rem < 0 {
 				rem = 0
 			}
-			db.statusLbl.SetText(fmt.Sprintf("Download cancelled (%d completed, %d remaining)", succ, rem))
+			db.setStatusText(fmt.Sprintf("Download cancelled (%d completed, %d remaining)", succ, rem))
 			if succ > 0 {
 				db.openFolderBtn.Show()
 			}
@@ -882,17 +918,17 @@ func (db *DownloadBar) startQueueWorker() {
 
 		if fail == 0 && succ > 0 {
 			db.statusLbl.Importance = widget.SuccessImportance
-			db.statusLbl.SetText(formatCompletedStatus(int(succ), finalBytes, db.savePath))
+			db.setStatusText(formatCompletedStatus(int(succ), finalBytes, db.savePath))
 		} else if succ > 0 {
 			db.statusLbl.Importance = widget.WarningImportance
-			db.statusLbl.SetText(fmt.Sprintf("Finished: %d downloaded (%s), %d failed. Saved to %s", succ, formatBytes(finalBytes), fail, db.savePath))
+			db.setStatusText(fmt.Sprintf("Finished: %d downloaded (%s), %d failed. Saved to %s", succ, formatBytes(finalBytes), fail, db.savePath))
 		} else {
 			db.statusLbl.Importance = widget.DangerImportance
 			finalErr := lastOverallErr
 			if finalErr != nil && (strings.Contains(finalErr.Error(), "storage") || strings.Contains(finalErr.Error(), "permission") || strings.Contains(finalErr.Error(), "unwritable")) {
-				db.statusLbl.SetText("⚠️  Download failed: Storage directory unwritable.")
+				db.setStatusText("⚠️  Download failed: Storage directory unwritable.")
 			} else {
-				db.statusLbl.SetText("⚠️  All downloads failed. Please check mirror connection.")
+				db.setStatusText("⚠️  All downloads failed. Please check mirror connection.")
 			}
 		}
 
