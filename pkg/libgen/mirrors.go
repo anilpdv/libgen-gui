@@ -46,7 +46,6 @@ var DownloadMirrors = []url.URL{
 	},
 }
 
-
 var UploadMirrors = []url.URL{
 	{
 		Scheme: "https",

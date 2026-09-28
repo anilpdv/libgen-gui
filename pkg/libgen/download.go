@@ -118,7 +118,6 @@ func GetDownloadURL(book *Book, useIpfs bool) error {
 	return fmt.Errorf("unable to retrieve download link for desired resource")
 }
 
-
 // ResolveMirrorDownloadURL resolves the direct download link using a specific mirror.
 func ResolveMirrorDownloadURL(mirror url.URL, book *Book, useIpfs bool) error {
 	return resolveMirrorDownloadURL(mirror, book, useIpfs)

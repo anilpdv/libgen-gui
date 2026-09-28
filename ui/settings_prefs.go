@@ -7,14 +7,14 @@ import (
 )
 
 const (
-	PrefKeyPreferredMirror      = "preferred_mirror"
-	PrefKeyNetworkTimeout       = "network_timeout_sec"
-	PrefKeyMaxRetries           = "max_retries"
-	PrefKeyAutoQueue            = "auto_queue_enabled"
-	PrefKeyAutoOpenBook         = "auto_open_book"
-	PrefKeyShowCompletionModal  = "show_completion_modal"
-	PrefKeyDefaultFormat        = "default_format_filter"
-	PrefKeyEnableIPFS           = "enable_ipfs_fallback"
+	PrefKeyPreferredMirror     = "preferred_mirror"
+	PrefKeyNetworkTimeout      = "network_timeout_sec"
+	PrefKeyMaxRetries          = "max_retries"
+	PrefKeyAutoQueue           = "auto_queue_enabled"
+	PrefKeyAutoOpenBook        = "auto_open_book"
+	PrefKeyShowCompletionModal = "show_completion_modal"
+	PrefKeyDefaultFormat       = "default_format_filter"
+	PrefKeyEnableIPFS          = "enable_ipfs_fallback"
 
 	DefaultPreferredMirror     = "auto"
 	DefaultNetworkTimeoutSec   = 15

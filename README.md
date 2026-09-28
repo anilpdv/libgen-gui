@@ -1,13 +1,16 @@
-# LibGen Downloader (Fyne GUI)
+# LibGen Downloader (Native Go + Fyne GUI)
 
-[![Build & Test](https://github.com/anilpdv/libgen-gui/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/anilpdv/libgen-gui)
+[![CI](https://github.com/anilpdv/libgen-gui/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/anilpdv/libgen-gui/actions/workflows/ci.yml)
+[![Pages](https://github.com/anilpdv/libgen-gui/actions/workflows/pages.yml/badge.svg?branch=main)](https://anilpdv.github.io/libgen-gui)
 [![Go Report Card](https://goreportcard.com/badge/github.com/anilpdv/libgen-gui)](https://goreportcard.com/report/github.com/anilpdv/libgen-gui)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/anilpdv/libgen-gui?color=blue)](https://github.com/anilpdv/libgen-gui/releases)
 
+> 🌐 **Official Website & Documentation**: [https://anilpdv.github.io/libgen-gui](https://anilpdv.github.io/libgen-gui)
+
 A fast, lightweight, native cross-platform desktop and mobile app for searching, discovering, and downloading books and research papers from Library Genesis mirrors.
 
-Built with **Go** and the **Fyne v2** vector UI toolkit for 100% native performance with zero webview overhead.
+Built with **Go** and the **Fyne v2** vector UI toolkit for 100% native performance with zero webview or Electron overhead.
 
 ---
 
@@ -21,26 +24,22 @@ Built with **Go** and the **Fyne v2** vector UI toolkit for 100% native performa
 
 | Platform | Verification Status | Target Package | Download |
 |---|:---:|:---:|---|
-| **macOS (Apple Silicon & Intel)** | ✅ **Primary Verified & Tested** | Native `.app` / `.zip` | [Download macOS Build](https://github.com/anilpdv/libgen-gui/releases) |
-| **Android (API 26–35)** | ✅ **Primary Verified & Tested** | Signed `.apk` (SAF support) | [Download Android APK](https://github.com/anilpdv/libgen-gui/releases) |
-| **Linux** | 🔄 Cross-compilation supported | Native binary / `.tar.gz` | [Build from Source](#building--running) |
-| **Windows** | 🔄 Cross-compilation supported | Native `.exe` | [Build from Source](#building--running) |
-| **iOS** | 🔄 Simulator build supported | `.app` package | [Build from Source](#building--running) |
-
-> [!NOTE]
-> **macOS** and **Android** are the primary development and daily-driver targets, featuring tailored responsive layouts and native storage adapters (including Android Storage Access Framework).
+| **macOS (Apple Silicon & Intel)** | ✅ **Primary Verified & Tested** | Native `.app` / `.zip` | [Download macOS Build (v2.0.0)](https://github.com/anilpdv/libgen-gui/releases) |
+| **Android (API 26–35)** | ✅ **Primary Verified & Tested** | Signed `.apk` (SAF support) | [Download Android APK (v2.0.0)](https://github.com/anilpdv/libgen-gui/releases) |
+| **Linux (X11 / Wayland)** | 🔄 Verified & Cross-compilation ready | Native binary / `.tar.gz` | [Build from Source](#building--running) |
+| **Windows (10 / 11)** | 🔄 Verified & Cross-compilation ready | Native `.exe` | [Build from Source](#building--running) |
 
 ---
 
-## ✨ Key Features
+## ✨ Key Features (v2.0.0)
 
-- **Adaptive Dual-View Layout**: Automatic responsive switching between desktop tabular sorting and touch-friendly mobile cards.
-- **Embedded Resilient Core**: Bundled `pkg/libgen` engine with multi-mirror automatic failover and IPFS gateway routing.
-- **Live Mirror Health Prober**: Background latency tester that monitors active mirrors in real time with priority selection.
-- **Interactive Download Queue**: Serialized FIFO queue with pause, resume, cancel, and row-level progress tracking.
-- **Android Storage Access Framework (SAF)**: Full support for Android 11+ scoped storage and SD card folder selection (`content://` URIs).
-- **Instant System Viewer**: 1-click open directly in Apple Books, Moon+ Reader, SumatraPDF, or your OS default reader.
-- **Zero Webview Bloat**: Compiles to a lightweight native binary powered by OpenGL/Metal hardware acceleration.
+- **Decoupled Architecture**: Full clean-architecture separation (`internal/network`, `internal/storage`, `internal/search`, `internal/download`, `internal/settings`, `internal/app`).
+- **Multi-Mirror Automatic Failover**: Continuous background latency probing and automatic failover across official mirrors (`libgen.is`, `libgen.rs`, `libgen.st`, `libgen.li`).
+- **Atomic Resumable Downloads**: Temporary `.part` file isolation with HTTP Range chunk resumption and atomic rename upon completion.
+- **Crash-Safe Queue Persistence**: Thread-safe serialized FIFO download queue backed by an atomic `.tmp` JSON ledger.
+- **Android Storage Access Framework (SAF)**: Native `DocumentFile` scoped storage and custom folder tree URI permissions for Android 10 through 15.
+- **Debounced Instant Search**: Multi-field search across title, author, series, publisher, year, ISBN, and MD5 with instant format badges.
+- **Zero Webview Overhead**: Compiles to a single static binary consuming less than 35MB RAM, powered by OpenGL/Metal hardware acceleration.
 
 ---
 
@@ -48,8 +47,32 @@ Built with **Go** and the **Fyne v2** vector UI toolkit for 100% native performa
 
 ### 📥 Download Pre-built Releases
 Grab ready-to-run releases from the [GitHub Releases](https://github.com/anilpdv/libgen-gui/releases) page:
-- **macOS**: `LibGen-Downloader-macOS.zip` (unzip and open `LibGen Downloader.app`)
-- **Android**: `LibGen-Downloader-Android.apk` (install on any Android 8.0+ device)
+- **macOS**: `LibGen.Downloader-v2.0.0-macos.zip` (unzip and run `LibGen Downloader.app`)
+- **Android**: `LibGen.Downloader-v2.0.0-android.apk` (install on Android 8.0+)
+- **Desktop Binary**: `libgen-gui-v2.0.0`
+
+---
+
+## 🏗️ Architecture Overview
+
+```
+libgen-gui/
+├── cmd/
+│   └── libgen-gui/        # Entry point binary
+│       └── main.go
+├── internal/
+│   ├── app/               # Composition root and wiring
+│   ├── download/          # Download manager, state machine, queue & ledger
+│   ├── network/           # Resilient HTTP client, mirrors, errors & backoff
+│   ├── search/            # Domain models, search controller & service
+│   ├── settings/          # Typed validated configuration
+│   └── storage/           # Desktop atomic storage & Android SAF adapter
+├── pkg/
+│   └── libgen/            # Reusable core LibGen parser & mirror scraper
+├── ui/                    # Fyne native graphical user interface
+├── website/               # Tailwind Plus marketing site (Next.js static export)
+└── docs/                  # GitHub Pages distribution
+```
 
 ---
 
@@ -62,10 +85,15 @@ Grab ready-to-run releases from the [GitHub Releases](https://github.com/anilpdv
 
 ### Run in Development
 ```bash
-go run main.go
+go run ./cmd/libgen-gui
 ```
 
-### Build Desktop App (macOS)
+### Build Native Desktop Binary
+```bash
+go build -o "LibGen Downloader" ./cmd/libgen-gui
+```
+
+### Package macOS App Bundle
 ```bash
 fyne package -os darwin -icon icon.png -appID com.libgen.downloader -name "LibGen Downloader"
 ```
@@ -80,14 +108,19 @@ fyne-cross android -app-id com.libgen.downloader -icon icon.png
 ## 🧪 Testing
 
 ```bash
-# Run unit & UI component tests
-go test ./ui ./pkg/libgen -v
+# Run all tests with race detector
+go test -race ./...
 
-# Run storage normalization and queue worker tests
-go test -v ./ui -run "TestDownloadQueue|TestNormalizePath"
+# Run internal domain tests
+go test -v -race ./internal/...
+
+# Run UI & scraper tests
+go test -v ./ui ./pkg/libgen
 ```
 
 ---
 
-## 📄 License
-Licensed under the [MIT License](LICENSE).
+## 📄 License & Legal Notice
+Distributed under the [MIT License](LICENSE).
+
+*Disclaimer: LibGen GUI is an independent search and client tool. Users are solely responsible for verifying the copyright status of files and complying with their local copyright and intellectual property laws.*

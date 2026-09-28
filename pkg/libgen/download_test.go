@@ -563,4 +563,3 @@ $('.btn-tooltip-bottom').tooltip({
 		t.Errorf("incorrect DownloadURL returned. got %s", string(results))
 	}
 }
-

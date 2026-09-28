@@ -147,6 +147,8 @@ func (d *MirrorStatusDialog) render() {
 	if d == nil || d.manager == nil || d.MirrorList == nil {
 		return
 	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
 	mirrors := d.manager.GetMirrors()
 	activeSearch, totalSearch := d.manager.GetActiveSearchCount()

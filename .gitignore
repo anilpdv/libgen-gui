@@ -24,3 +24,11 @@ scratch/
 scripts/
 *generate_history*
 *organic_git_history*
+screenshot*.png
+
+# Next.js & Node
+node_modules/
+website/node_modules/
+website/.next/
+website/out/
+

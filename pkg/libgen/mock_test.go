@@ -37,30 +37,30 @@ func (m *mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 			switch reqMD5 {
 			case "2F2DBA2A621B693BB95601C16ED680F8":
 				resMap["643"] = map[string]interface{}{
-					"md5":        "2f2dba2a621b693bb95601c16ed680f8",
-					"filesize":   "102400",
-					"extension":  "gz",
-					"pages":      "230",
-					"locator":    "The Turing Test and the Frame Problem.gz",
-					"libgen_id":  "643",
+					"md5":       "2f2dba2a621b693bb95601c16ed680f8",
+					"filesize":  "102400",
+					"extension": "gz",
+					"pages":     "230",
+					"locator":   "The Turing Test and the Frame Problem.gz",
+					"libgen_id": "643",
 				}
 			case "06E6135019C8F2F43158ABA9ABDC610E":
 				resMap["3167"] = map[string]interface{}{
-					"md5":        "06e6135019c8f2f43158aba9abdc610e",
-					"filesize":   "204800",
-					"extension":  "djvu",
-					"pages":      "230",
-					"locator":    "You failed your math test.djvu",
-					"libgen_id":  "3167",
+					"md5":       "06e6135019c8f2f43158aba9abdc610e",
+					"filesize":  "204800",
+					"extension": "djvu",
+					"pages":     "230",
+					"locator":   "You failed your math test.djvu",
+					"libgen_id": "3167",
 				}
 			default:
 				resMap["1"] = map[string]interface{}{
-					"md5":        strings.ToLower(reqMD5),
-					"filesize":   "1000",
-					"extension":  "pdf",
-					"pages":      "10",
-					"locator":    "Default.pdf",
-					"libgen_id":  "1",
+					"md5":       strings.ToLower(reqMD5),
+					"filesize":  "1000",
+					"extension": "pdf",
+					"pages":     "10",
+					"locator":   "Default.pdf",
+					"libgen_id": "1",
 				}
 			}
 			data, _ := json.Marshal(resMap)
@@ -620,4 +620,3 @@ func TestSearchWorkingMirrorReporting(t *testing.T) {
 		t.Errorf("expected WorkingMirror host libgen.li, got %s", working.Host)
 	}
 }
-

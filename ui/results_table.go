@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"sync"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -16,6 +17,7 @@ import (
 // ResultsView displays the search results as a scrollable, selectable list
 // with checkboxes for multi-book selection and sortable columns.
 type ResultsView struct {
+	mu    sync.RWMutex
 	app   *App
 	books []*libgen.Book
 	list  *widget.List
@@ -238,8 +240,11 @@ func (rv *ResultsView) DisableNext() {
 }
 
 func (rv *ResultsView) SetBooks(books []*libgen.Book) {
+	rv.mu.Lock()
 	rv.books = books
 	rv.hasMore = len(books) >= 25
+	rv.mu.Unlock()
+
 	rv.UpdatePaginationButtons()
 	rv.doSort()
 	rv.UpdateHeaderSelectionState()
@@ -383,6 +388,9 @@ func (rv *ResultsView) updateHeader() {
 }
 
 func (rv *ResultsView) doSort() {
+	rv.mu.Lock()
+	defer rv.mu.Unlock()
+
 	if len(rv.books) == 0 {
 		if rv.wrap != nil {
 			rv.wrap.Objects = []fyne.CanvasObject{rv.empty}
@@ -822,7 +830,11 @@ func (rv *ResultsView) GetSortSelect() *widget.Select {
 	return rv.sortSelect
 }
 
-// GetBooks returns the currently loaded book slice.
+// GetBooks returns a thread-safe copy of the currently loaded book slice.
 func (rv *ResultsView) GetBooks() []*libgen.Book {
-	return rv.books
+	rv.mu.RLock()
+	defer rv.mu.RUnlock()
+	res := make([]*libgen.Book, len(rv.books))
+	copy(res, rv.books)
+	return res
 }

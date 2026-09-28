@@ -187,8 +187,8 @@ func (a *App) Build() fyne.CanvasObject {
 		}()
 	}
 
-	// Prompt user on first run to choose their download directory
-	if a.window != nil && !IsDownloadFolderConfigured() {
+	// Prompt user on first run to choose their download directory (skip in test runner)
+	if a.window != nil && !IsDownloadFolderConfigured() && flag.Lookup("test.v") == nil && !strings.HasSuffix(os.Args[0], ".test") {
 		go func() {
 			time.Sleep(250 * time.Millisecond)
 			ShowDownloadLocationDialog(a, true, nil)

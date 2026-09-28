@@ -22,8 +22,8 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
-	"libgen-gui/pkg/libgen"
 	"github.com/dustin/go-humanize"
+	"libgen-gui/pkg/libgen"
 )
 
 // DownloadBar shows the save-folder picker, download button, cancel button,
@@ -300,13 +300,16 @@ func (db *DownloadBar) SetSelectedBooks(books []*libgen.Book) {
 // CancelDownload aborts all active and queued batch downloads.
 func (db *DownloadBar) CancelDownload() {
 	db.mu.Lock()
-	if db.cancelFunc != nil {
-		db.cancelFunc()
-	}
-	if db.queue != nil {
-		db.queue.CancelAll()
-	}
+	cancelFn := db.cancelFunc
+	q := db.queue
 	db.mu.Unlock()
+
+	if cancelFn != nil {
+		cancelFn()
+	}
+	if q != nil {
+		q.CancelAll()
+	}
 }
 
 // OpenSaveFolder reveals or opens the save directory in macOS Finder (or default file manager).
@@ -510,18 +513,23 @@ func (db *DownloadBar) EnqueueBooks(books []*libgen.Book) {
 		}
 	}
 
-	if db.queue == nil {
+	q := db.queue
+	if q == nil {
 		if db.app != nil {
 			db.queue = db.app.GetDownloadQueue()
+			q = db.queue
 		} else {
 			db.queue = NewDownloadQueue()
+			q = db.queue
 		}
 	}
+	db.mu.Unlock()
 
-	db.queue.Enqueue(books...)
+	q.Enqueue(books...)
 
+	db.mu.Lock()
 	if db.isDownloading {
-		pending := db.queue.GetPendingCount()
+		pending := q.GetPendingCount()
 		db.statusLbl.Importance = widget.MediumImportance
 		if len(books) == 1 {
 			db.statusLbl.SetText(fmt.Sprintf("Added \"%s\" to queue (%d in queue)", truncate(books[0].Title, 35), pending))
@@ -1595,4 +1603,3 @@ func (db *DownloadBar) GetPathLabel() *widget.Label {
 func (db *DownloadBar) GetStatusLabel() *widget.Label {
 	return db.statusLbl
 }
-

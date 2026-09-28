@@ -91,7 +91,6 @@ func NewDownloadQueue() *DownloadQueue {
 // If a book is already pending or downloading, it returns the existing item to prevent duplicates.
 func (q *DownloadQueue) Enqueue(books ...*libgen.Book) []*DownloadItem {
 	q.mu.Lock()
-	defer q.mu.Unlock()
 
 	var added []*DownloadItem
 	now := time.Now()
@@ -126,8 +125,11 @@ func (q *DownloadQueue) Enqueue(books ...*libgen.Book) []*DownloadItem {
 		added = append(added, item)
 	}
 
-	if len(added) > 0 && q.OnQueueChanged != nil {
-		go q.OnQueueChanged()
+	notify := len(added) > 0 && q.OnQueueChanged != nil
+	q.mu.Unlock()
+
+	if notify {
+		q.OnQueueChanged()
 	}
 
 	return added
@@ -136,18 +138,20 @@ func (q *DownloadQueue) Enqueue(books ...*libgen.Book) []*DownloadItem {
 // Remove dequeues an item that is still in QueueStatusPending.
 func (q *DownloadQueue) Remove(bookKey string) bool {
 	q.mu.Lock()
-	defer q.mu.Unlock()
-
+	var notify bool
 	for i, it := range q.items {
 		if BookKey(it.Book) == bookKey && it.Status == QueueStatusPending {
 			q.items = append(q.items[:i], q.items[i+1:]...)
-			if q.OnQueueChanged != nil {
-				go q.OnQueueChanged()
-			}
-			return true
+			notify = true
+			break
 		}
 	}
-	return false
+	q.mu.Unlock()
+
+	if notify && q.OnQueueChanged != nil {
+		q.OnQueueChanged()
+	}
+	return notify
 }
 
 // CancelCurrent aborts the currently downloading book and advances to the next pending item.
@@ -177,15 +181,13 @@ func (q *DownloadQueue) CancelAll() {
 	q.mu.Unlock()
 
 	if q.OnQueueChanged != nil {
-		go q.OnQueueChanged()
+		q.OnQueueChanged()
 	}
 }
 
 // ClearCompleted removes completed, failed, and cancelled items from the queue history.
 func (q *DownloadQueue) ClearCompleted() {
 	q.mu.Lock()
-	defer q.mu.Unlock()
-
 	remaining := make([]*DownloadItem, 0, len(q.items))
 	for _, it := range q.items {
 		if it.Status == QueueStatusPending || it.Status == QueueStatusDownloading {
@@ -193,9 +195,10 @@ func (q *DownloadQueue) ClearCompleted() {
 		}
 	}
 	q.items = remaining
+	q.mu.Unlock()
 
 	if q.OnQueueChanged != nil {
-		go q.OnQueueChanged()
+		q.OnQueueChanged()
 	}
 }
 
@@ -294,7 +297,7 @@ func (q *DownloadQueue) workerLoop(downloadFn func(ctx context.Context, item *Do
 		q.mu.Unlock()
 
 		if q.OnQueueChanged != nil {
-			go q.OnQueueChanged()
+			q.OnQueueChanged()
 		}
 	}()
 
@@ -334,7 +337,7 @@ func (q *DownloadQueue) workerLoop(downloadFn func(ctx context.Context, item *Do
 		q.mu.Unlock()
 
 		if q.OnQueueChanged != nil {
-			go q.OnQueueChanged()
+			q.OnQueueChanged()
 		}
 		if q.OnItemStarted != nil {
 			q.OnItemStarted(nextItem)
@@ -367,30 +370,32 @@ func (q *DownloadQueue) workerLoop(downloadFn func(ctx context.Context, item *Do
 		if err != nil {
 			if actCtx.Err() != nil || q.queueCtx.Err() != nil {
 				nextItem.Status = QueueStatusCancelled
+				q.mu.Unlock()
 				if q.OnQueueChanged != nil {
-					go q.OnQueueChanged()
+					q.OnQueueChanged()
 				}
 			} else {
 				nextItem.Status = QueueStatusFailed
 				nextItem.Error = err
+				q.mu.Unlock()
 				if q.OnItemFailed != nil {
-					go q.OnItemFailed(nextItem, err)
+					q.OnItemFailed(nextItem, err)
 				}
 				if q.OnQueueChanged != nil {
-					go q.OnQueueChanged()
+					q.OnQueueChanged()
 				}
 			}
 		} else {
 			nextItem.Status = QueueStatusCompleted
 			nextItem.Progress = 1.0
+			q.mu.Unlock()
 			if q.OnItemCompleted != nil {
-				go q.OnItemCompleted(nextItem)
+				q.OnItemCompleted(nextItem)
 			}
 			if q.OnQueueChanged != nil {
-				go q.OnQueueChanged()
+				q.OnQueueChanged()
 			}
 		}
-		q.mu.Unlock()
 
 		// Brief throttle between queue items to prevent mirror connection flooding
 		time.Sleep(100 * time.Millisecond)

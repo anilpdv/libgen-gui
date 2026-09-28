@@ -2436,6 +2436,3 @@ func TestQueueDialog_RenderAndActions(t *testing.T) {
 	// Verify ShowQueueDialog runs without panic
 	ShowQueueDialog(app)
 }
-
-
-

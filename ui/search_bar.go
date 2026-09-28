@@ -269,21 +269,24 @@ func (sb *SearchBar) doSearchPage(page int) {
 
 		go func() {
 			sb.mu.Lock()
+			hasCustomSearch := (sb.searchFn != nil)
 			mirror := sb.currentMirror
 			sb.mu.Unlock()
 
-			preferred := GetPreferredMirror()
-			if preferred != "" && preferred != "auto" && mirror.Host != preferred {
-				for _, m := range libgen.SearchMirrors {
-					if m.Host == preferred {
-						mirror = m
-						break
+			if !hasCustomSearch {
+				preferred := GetPreferredMirror()
+				if preferred != "" && preferred != "auto" && mirror.Host != preferred {
+					for _, m := range libgen.SearchMirrors {
+						if m.Host == preferred {
+							mirror = m
+							break
+						}
 					}
 				}
-			}
 
-			if mirror.Host == "" {
-				mirror = libgen.GetWorkingMirror(libgen.SearchMirrors)
+				if mirror.Host == "" {
+					mirror = libgen.GetWorkingMirror(libgen.SearchMirrors)
+				}
 			}
 
 			working := mirror
