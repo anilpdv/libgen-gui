@@ -1,8 +1,8 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import { Button } from '@/components/Button'
 import { Container } from '@/components/Container'
 import desktopSearchImg from '@/images/screenshots/desktop-search.webp'
-import androidSearchImg from '@/images/screenshots/android-search.webp'
 
 function AppleIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
@@ -32,40 +32,33 @@ function GithubIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   )
 }
 
-const platforms = [
-  { name: 'macOS', spec: 'Apple Silicon + Intel', status: 'TESTED', badgeColor: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' },
-  { name: 'Android', spec: 'Android 8.0+, API 26–35', status: 'TESTED', badgeColor: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' },
-  { name: 'Linux', spec: 'Build from source', status: 'BUILD SUPPORT', badgeColor: 'bg-slate-100 text-slate-700 ring-slate-500/20' },
-  { name: 'Windows', spec: 'Build from source', status: 'BUILD SUPPORT', badgeColor: 'bg-slate-100 text-slate-700 ring-slate-500/20' },
-  { name: 'iOS', spec: 'Simulator support', status: 'BUILD SUPPORT', badgeColor: 'bg-slate-100 text-slate-700 ring-slate-500/20' },
-]
-
 export function Hero() {
   return (
-    <div className="relative overflow-hidden pt-10 pb-16 sm:pt-14 sm:pb-24 lg:pb-28">
-      <Container>
-        <div className="lg:grid lg:grid-cols-12 lg:gap-x-10 lg:items-center">
+    <section className="relative overflow-hidden pt-10 pb-16 sm:pt-14 sm:pb-24 lg:pt-16 lg:pb-28">
+      <Container className="w-[min(100%-48px,1240px)] max-sm:w-[min(100%-32px,1240px)]">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(420px,0.9fr)_minmax(560px,1.25fr)] lg:gap-x-14 lg:items-center">
           {/* Left Column: Copy & Actions */}
-          <div className="relative z-10 mx-auto max-w-2xl lg:col-span-6 lg:max-w-none">
+          <div className="relative z-10 mx-auto max-w-2xl lg:max-w-none">
             <div className="inline-flex items-center gap-x-2 rounded-full bg-cyan-50 px-3.5 py-1 text-xs font-semibold text-cyan-800 ring-1 ring-cyan-700/15 mb-6">
               <span className="h-1.5 w-1.5 rounded-full bg-cyan-600 animate-pulse" />
               <span>OPEN SOURCE · NATIVE · CROSS-PLATFORM</span>
             </div>
 
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-[3.15rem] lg:leading-[1.12]">
+            <h1 className="max-w-[650px] text-[2rem] sm:text-5xl lg:text-[3.25rem] font-bold tracking-tight text-gray-900 leading-[1.12] lg:leading-[1.02]">
               A fast, native downloader for books and research papers.
             </h1>
 
-            <p className="mt-5 text-[15px] sm:text-base lg:text-[1.0625rem] text-gray-600 leading-[1.65] max-w-[580px]">
+            <p className="mt-5 text-base sm:text-[1.0625rem] text-gray-600 leading-[1.65] max-w-[590px]">
               Search multiple sources, recover automatically from failing mirrors, and manage downloads from one lightweight native application built with Go and Fyne.
             </p>
 
+            {/* CTAs */}
             <div className="mt-8 flex flex-wrap items-center gap-3.5">
               <Button
                 href="https://github.com/anilpdv/libgen-gui/releases/download/v2.0.1/LibGen.Downloader-v2.0.1-macos.zip"
                 variant="solid"
                 color="cyan"
-                className="gap-2.5 shadow-sm"
+                className="gap-2.5 shadow-sm min-h-[44px] px-5"
               >
                 <AppleIcon className="h-4 w-4" />
                 <span>Download macOS (v2.0.1)</span>
@@ -75,109 +68,86 @@ export function Hero() {
                 href="https://github.com/anilpdv/libgen-gui/releases/download/v2.0.1/LibGen-Downloader-Android-arm64.apk"
                 variant="outline"
                 color="gray"
-                className="gap-2.5"
+                className="gap-2.5 min-h-[44px] px-5"
               >
                 <AndroidIcon className="h-4 w-4 text-emerald-600" />
-                <span>Get Android APK</span>
+                <span>Download Android APK</span>
               </Button>
 
-              <Button
+              <Link
                 href="https://github.com/anilpdv/libgen-gui"
-                variant="outline"
-                color="gray"
-                className="gap-2"
-                aria-label="View LibGen GUI on GitHub"
+                className="min-h-[44px] inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 hover:text-gray-900 transition-colors"
+                aria-label="View LibGen GUI repository on GitHub"
               >
                 <GithubIcon className="h-4 w-4 text-gray-700" />
                 <span>GitHub</span>
-              </Button>
+              </Link>
             </div>
 
-            {/* Platform Status Grid */}
+            {/* Simplified Platform Support Status */}
             <div className="mt-10 pt-6 border-t border-gray-200/80">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                  Platform Verification & Support
-                </p>
-                <span className="text-[11px] text-gray-400 font-medium">v2.0.1 Release</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
-                {platforms.map((platform) => (
-                  <div
-                    key={platform.name}
-                    className="rounded-xl border border-gray-200/80 bg-white p-3 shadow-2xs flex flex-col justify-between max-sm:last:col-span-2"
-                  >
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-xs font-bold text-gray-900">{platform.name}</span>
-                      <span
-                        className={`inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded-sm ring-1 ${platform.badgeColor}`}
-                      >
-                        {platform.status}
-                      </span>
-                    </div>
-                    <p className="text-[12px] text-gray-500 mt-1.5 leading-snug">
-                      {platform.spec}
-                    </p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
+                {/* Tested Releases */}
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 block mb-1.5">
+                    Tested Releases
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 text-xs font-semibold ring-1 ring-emerald-600/20">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+                      macOS
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 text-xs font-semibold ring-1 ring-emerald-600/20">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+                      Android
+                    </span>
                   </div>
-                ))}
+                </div>
+
+                <div className="hidden sm:block h-8 w-px bg-gray-200" />
+
+                {/* Build Support */}
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 block mb-1.5">
+                    Build Support
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center px-2 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-medium ring-1 ring-slate-400/20">
+                      Linux
+                    </span>
+                    <span className="inline-flex items-center px-2 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-medium ring-1 ring-slate-400/20">
+                      Windows
+                    </span>
+                    <span className="inline-flex items-center px-2 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-medium ring-1 ring-slate-400/20">
+                      iOS Simulator
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Authentic Application Screenshots */}
-          <div className="relative mt-12 lg:col-span-6 lg:mt-0">
-            {/* Subtle Cyan Ambient Glow */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[420px] w-[500px] rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
+          {/* Right Column: Dominant Authentic Desktop Application Screenshot */}
+          <div className="relative mt-4 lg:mt-0">
+            {/* Subtle Ambient Radial Glow */}
+            <div className="absolute -inset-4 bg-cyan-500/12 rounded-3xl blur-2xl -z-10 pointer-events-none" />
 
-            <div className="relative rounded-2xl border border-gray-200/90 bg-white p-2 shadow-2xl shadow-slate-900/10">
-              <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-100 bg-gray-50/80 rounded-t-xl mb-1 text-[11px] text-gray-500">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                </div>
-                <span className="font-semibold text-gray-700">LibGen Downloader — Desktop UI</span>
-                <span className="font-mono text-[10px] text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded font-medium">
-                  Mirrors: 2/2 Active
-                </span>
-              </div>
-
-              {/* Real Desktop Application Screenshot */}
-              <div className="relative overflow-hidden rounded-lg bg-slate-900">
+            <figure className="relative m-0">
+              <div className="overflow-hidden rounded-[14px] border border-slate-900/10 bg-[#0b1020] shadow-[0_28px_70px_rgba(15,23,42,0.16),0_8px_24px_rgba(15,23,42,0.1)]">
                 <Image
                   src={desktopSearchImg}
-                  alt="LibGen GUI desktop application interface showing search results, file formats, and download destination bar"
+                  alt="Actual LibGen GUI desktop interface showing live search results, format filters, and download queue controls"
                   priority
-                  className="w-full h-auto object-cover rounded-lg"
+                  className="w-full h-auto block"
                 />
               </div>
-
-              {/* Overlapping Authentic Android / Mobile Preview Badge */}
-              <div className="absolute -bottom-6 -right-4 sm:-right-6 w-36 sm:w-44 rounded-xl border border-gray-200/90 bg-white p-1.5 shadow-xl shadow-slate-950/20 backdrop-blur-md">
-                <div className="text-[10px] font-bold text-gray-800 px-1.5 py-0.5 flex items-center justify-between border-b border-gray-100 mb-1">
-                  <span>Android Mobile UI</span>
-                  <span className="text-[8px] bg-emerald-100 text-emerald-800 px-1 rounded font-medium">SAF</span>
-                </div>
-                <Image
-                  src={androidSearchImg}
-                  alt="LibGen GUI Android mobile interface with scoped storage and touch controls"
-                  className="w-full h-auto rounded-lg"
-                />
-              </div>
-            </div>
-
-            {/* Captions */}
-            <div className="mt-8 flex items-center justify-between text-xs text-gray-500 px-1">
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-cyan-600" />
-                <span className="font-medium text-gray-700">Real Application UI</span>
-                <span className="text-gray-400">— Desktop Search & Download Queue</span>
-              </div>
-              <span className="text-gray-400 hidden sm:inline">No Electron · Pure Go + Fyne</span>
-            </div>
+              <figcaption className="mt-3 text-center text-xs text-gray-500">
+                Actual desktop application interface · macOS release shown
+              </figcaption>
+            </figure>
           </div>
         </div>
       </Container>
-    </div>
+    </section>
   )
 }

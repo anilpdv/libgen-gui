@@ -35,11 +35,11 @@ Every screenshot displayed on the website or documentation must satisfy:
 
 ### macOS Desktop UI
 - **Target Application**: LibGen GUI v2.0+
-- **Capture Resolution**: $2024 \times 1488$ (Retina @2x) or $1440 \times 900$ (Standard)
+- **Capture Resolution**: $2048 \times 1280$ (Retina @2x) or $1440 \times 900$ (Standard)
 - **Steps**:
   1. Launch the application: `go run .`
   2. Perform a search query (e.g., `Distributed Systems`) to populate results with pagination and format badges.
-  3. Select a book to activate the download bar.
+  3. Select books to activate the download bar.
   4. Capture the window cleanly using macOS window capture (`Cmd + Shift + 4`, then `Space`, then click window).
   5. Save as `screenshot_redesigned.png`.
 
@@ -50,12 +50,6 @@ Every screenshot displayed on the website or documentation must satisfy:
   3. Capture the dialog window cleanly.
   4. Save as `screenshot_mirror_dialog.png`.
 
-### Android Mobile View
-- **Target Viewport**: $380 \times 720$ (logical) / $1080 \times 2400$ (device)
-- **Steps**:
-  1. Run with mobile layout or capture from Android emulator running `LibGen-Downloader-Android-arm64.apk`.
-  2. Save as `android-search.png`.
-
 ---
 
 ## 4. Image Optimization and WebP Conversion
@@ -64,15 +58,12 @@ Convert raw PNG screenshots to lightweight, lossless/near-lossless WebP images u
 
 ```bash
 # 1. Convert desktop search
-cwebp -q 90 screenshot_redesigned.png -o website/src/images/screenshots/desktop-search.webp
+cwebp -q 92 desktop-populated.png -o website/src/images/screenshots/desktop-search.webp
 
 # 2. Convert mirror health dialog
 cwebp -q 90 screenshot_mirror_dialog.png -o website/src/images/screenshots/mirror-health.webp
 
-# 3. Convert Android mobile view
-cwebp -q 90 android-search.png -o website/src/images/screenshots/android-search.webp
-
-# 4. Mirror to docs directory
+# 3. Mirror to docs directory
 cp website/src/images/screenshots/*.webp docs/assets/screenshots/
 ```
 
@@ -84,4 +75,4 @@ cp website/src/images/screenshots/*.webp docs/assets/screenshots/
 |---|---|---|
 | `desktop-search.webp` | `website/src/images/screenshots/desktop-search.webp` | `<Hero />`, `<PrimaryFeatures />` |
 | `mirror-health.webp` | `website/src/images/screenshots/mirror-health.webp` | `<PrimaryFeatures />` |
-| `android-search.webp` | `website/src/images/screenshots/android-search.webp` | `<Hero />` (Mobile preview overlay) |
+| `android-search.webp` | `website/src/images/screenshots/android-search.webp` | Dedicated downloads / mobile docs |
