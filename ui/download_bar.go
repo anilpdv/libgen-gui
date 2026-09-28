@@ -804,12 +804,16 @@ func (db *DownloadBar) startQueueWorker() {
 
 						if err != nil {
 							if ctx.Err() != nil {
+								db.queue.mu.Lock()
 								tsk.item.Status = QueueStatusCancelled
+								db.queue.mu.Unlock()
 								return
 							}
 							atomic.AddInt64(&batchFailed, 1)
+							db.queue.mu.Lock()
 							tsk.item.Status = QueueStatusFailed
 							tsk.item.Error = err
+							db.queue.mu.Unlock()
 							errMu.Lock()
 							if batchErr == nil {
 								batchErr = err
@@ -824,15 +828,19 @@ func (db *DownloadBar) startQueueWorker() {
 						}
 
 						atomic.AddInt64(&batchSuccessful, 1)
+						db.queue.mu.Lock()
 						tsk.item.Status = QueueStatusCompleted
 						tsk.item.Progress = 1.0
 						tsk.item.BytesDownloaded = atomic.LoadInt64(&bookBytesRead)
+						db.queue.mu.Unlock()
 						updateProgressAndStatus(0, true)
 						db.removeSelectedBook(b)
 
+						errMu.Lock()
 						if firstSuccessBook == nil {
 							firstSuccessBook = b
 						}
+						errMu.Unlock()
 					}
 				}()
 			}

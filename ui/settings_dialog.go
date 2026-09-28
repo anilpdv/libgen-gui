@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime"
 	"strings"
@@ -12,11 +13,12 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"libgen-gui/internal/settings"
+	"libgen-gui/internal/storage"
 	"libgen-gui/pkg/libgen"
 )
 
-// ShowFullSettingsDialog displays a comprehensive, tabbed settings dialog
-// covering Storage, Mirrors & Network Health, Downloads & Queue, and About.
+// ShowFullSettingsDialog displays a comprehensive settings dialog covering Downloads, Network, Mirrors, and Appearance.
 func ShowFullSettingsDialog(a *App, initialTab int) {
 	if a == nil || a.window == nil {
 		return
@@ -26,110 +28,333 @@ func ShowFullSettingsDialog(a *App, initialTab int) {
 	healthMgr := GetMirrorHealthManager()
 	var d *dialog.CustomDialog
 
-	// ─── TAB 1: Storage & Download Location ─────────────────────
-	storageBox := container.NewVBox()
-
-	selectedPath := ""
-	if a.downloadBar != nil {
-		selectedPath = NormalizePath(a.downloadBar.GetSavePath())
+	// Initialize Settings repository & controller
+	defaultLoc, _ := storage.ResolveDefaultLocation(isMobile)
+	defaultSettings := settings.Default()
+	if defaultLoc.Kind == storage.LocationAndroidSAF {
+		defaultSettings.StorageURI = defaultLoc.URI
+		defaultSettings.StorageDisplayName = defaultLoc.DisplayName
+	} else {
+		defaultSettings.DownloadLocation = defaultLoc.Path
+		defaultSettings.StorageDisplayName = defaultLoc.DisplayName
 	}
-	if selectedPath == "" {
-		selectedPath = GetConfiguredSavePath(isMobile)
+
+	app := fyne.CurrentApp()
+	var repo settings.Repository
+	if app != nil && app.Preferences() != nil {
+		repo = settings.NewFyneRepository(app.Preferences(), defaultSettings)
+	} else {
+		repo = settings.NewMemoryRepository(defaultSettings)
 	}
 
-	pathHeader := widget.NewLabelWithStyle("Download Directory", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
-	storageBox.Add(pathHeader)
+	currentSettings, _ := repo.Load()
+	initialLoc := storage.Location{
+		Kind:        storage.LocationDesktopPath,
+		Path:        currentSettings.DownloadLocation,
+		URI:         currentSettings.StorageURI,
+		DisplayName: currentSettings.StorageDisplayName,
+	}
+	if currentSettings.StorageURI != "" {
+		initialLoc.Kind = storage.LocationAndroidSAF
+	}
+	if initialLoc.DisplayName == "" {
+		if initialLoc.Path != "" {
+			initialLoc.DisplayName = initialLoc.Path
+		} else if initialLoc.URI != "" {
+			initialLoc.DisplayName = initialLoc.URI
+		} else {
+			initialLoc = defaultLoc
+		}
+	}
 
-	pathDisplay := widget.NewLabel(selectedPath)
+	targetProv, _ := storage.NewMutableTargetProvider(initialLoc)
+	locSelector := storage.NewDesktopLocationSelector(a.window)
+	locOpener := storage.NewDesktopLocationOpener()
+	ctrl := settings.NewController(repo, locSelector, locOpener, targetProv)
+
+	// ─── TAB 1: Downloads ───────────────────────────────────────
+	downloadsBox := container.NewVBox()
+
+	curDisplay := currentSettings.StorageDisplayName
+	if curDisplay == "" {
+		if currentSettings.DownloadLocation != "" {
+			curDisplay = currentSettings.DownloadLocation
+		} else if currentSettings.StorageURI != "" {
+			curDisplay = currentSettings.StorageURI
+		} else {
+			curDisplay = defaultLoc.DisplayName
+		}
+	}
+
+	pathHeader := widget.NewLabelWithStyle("Current Download Folder", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	downloadsBox.Add(pathHeader)
+
+	pathDisplay := widget.NewLabel(curDisplay)
 	pathDisplay.Wrapping = fyne.TextWrapBreak
 	pathDisplay.TextStyle = fyne.TextStyle{Monospace: true}
-	storageBox.Add(pathDisplay)
+	downloadsBox.Add(pathDisplay)
 
 	statusLabel := widget.NewLabel("")
 	statusLabel.Wrapping = fyne.TextWrapWord
-	updatePathStatus := func(p string) {
-		normalized := NormalizePath(p)
-		if IsDirWritable(normalized) {
-			statusLabel.SetText("🟢 Location is writable and ready:\n" + normalized)
+	updatePathStatus := func(display string) {
+		normalized := NormalizePath(display)
+		if normalized != "" && IsDirWritable(normalized) {
+			statusLabel.SetText("🟢 Folder is writable and ready")
+			statusLabel.Importance = widget.SuccessImportance
+		} else if currentSettings.StorageURI != "" {
+			statusLabel.SetText("🟢 Android Storage Access Framework folder configured")
 			statusLabel.Importance = widget.SuccessImportance
 		} else {
-			statusLabel.SetText("🔴 Directory is not writable. Please choose another location.")
-			statusLabel.Importance = widget.DangerImportance
+			statusLabel.SetText("⚠️ Please verify folder write permissions")
+			statusLabel.Importance = widget.WarningImportance
 		}
 	}
-	updatePathStatus(selectedPath)
-	storageBox.Add(statusLabel)
+	updatePathStatus(curDisplay)
+	downloadsBox.Add(statusLabel)
 
-	presets := GetLocationPresets(isMobile)
-	var presetLabels []string
-	for _, p := range presets {
-		presetLabels = append(presetLabels, p.Label)
-	}
-	presetRadio := widget.NewRadioGroup(presetLabels, func(choice string) {
-		for _, p := range presets {
-			if p.Label == choice {
-				selectedPath = p.Path
-				pathDisplay.SetText(selectedPath)
-				updatePathStatus(selectedPath)
-				SaveConfiguredSavePath(selectedPath)
-				if a.downloadBar != nil {
-					a.downloadBar.SetSavePath(selectedPath)
-				}
-				break
-			}
-		}
-	})
+	// Change Folder Button
+	changeFolderBtn := widget.NewButtonWithIcon("Change Folder", theme.FolderOpenIcon(), nil)
+	changeFolderBtn.Importance = widget.HighImportance
+	changeFolderBtn.OnTapped = func() {
+		changeFolderBtn.Disable()
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+			defer cancel()
 
-	for _, p := range presets {
-		if NormalizePath(p.Path) == NormalizePath(selectedPath) {
-			presetRadio.SetSelected(p.Label)
-			break
-		}
-	}
+			location, err := ctrl.ChangeDownloadLocation(ctx)
+			changeFolderBtn.Enable()
 
-	presetLabel := widget.NewLabelWithStyle("Quick Presets:", fyne.TextAlignLeading, fyne.TextStyle{Italic: true})
-	storageBox.Add(presetLabel)
-	storageBox.Add(presetRadio)
-
-	browseBtn := widget.NewButtonWithIcon("Browse Other Folder...", theme.FolderOpenIcon(), func() {
-		folderDlg := dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
-			if err != nil || uri == nil {
+			if errors.Is(err, storage.ErrSelectionCancelled) {
 				return
 			}
-			rawPath := uri.Path()
-			if rawPath == "" {
-				rawPath = uri.String()
-			}
-			resolved := NormalizePath(rawPath)
-			if IsDirWritable(resolved) {
-				selectedPath = resolved
-				pathDisplay.SetText(selectedPath)
-				updatePathStatus(selectedPath)
-				SaveConfiguredSavePath(selectedPath)
-				if a.downloadBar != nil {
-					a.downloadBar.SetSavePath(selectedPath)
-				}
-				presetRadio.SetSelected("")
-			} else {
-				dialog.ShowError(fmt.Errorf("Selected folder is not writable: %s", resolved), a.window)
-			}
-		}, a.window)
-		folderDlg.Resize(fyne.NewSize(500, 400))
-		folderDlg.Show()
-	})
-	browseBtn.Importance = widget.MediumImportance
 
-	openFolderBtn := widget.NewButtonWithIcon("Open Download Folder", theme.NavigateNextIcon(), func() {
-		if selectedPath != "" {
-			openFileInSystem(selectedPath)
-		}
+			if err != nil {
+				dialog.ShowError(err, a.window)
+				return
+			}
+
+			pathDisplay.SetText(location.DisplayName)
+			updatePathStatus(location.DisplayName)
+			if a.downloadBar != nil {
+				if location.Path != "" {
+					a.downloadBar.SetSavePath(location.Path)
+				} else {
+					a.downloadBar.SetSavePath(location.DisplayName)
+				}
+			}
+		}()
+	}
+
+	// Open Folder Button
+	openFolderBtn := widget.NewButtonWithIcon("Open Folder", theme.NavigateNextIcon(), func() {
+		go func() {
+			err := ctrl.OpenDownloadLocation(context.Background())
+			if err != nil {
+				// Fallback to direct system open
+				if currentSettings.DownloadLocation != "" {
+					openFileInSystem(currentSettings.DownloadLocation)
+				} else {
+					dialog.ShowError(err, a.window)
+				}
+			}
+		}()
 	})
 	openFolderBtn.Importance = widget.LowImportance
 
-	storageBox.Add(container.NewHBox(browseBtn, openFolderBtn))
+	// Reset to Default Button
+	resetFolderBtn := widget.NewButtonWithIcon("Reset to Default", theme.ViewRefreshIcon(), func() {
+		if err := ctrl.ResetToDefault(defaultLoc); err != nil {
+			dialog.ShowError(err, a.window)
+			return
+		}
+		pathDisplay.SetText(defaultLoc.DisplayName)
+		updatePathStatus(defaultLoc.DisplayName)
+		if a.downloadBar != nil {
+			a.downloadBar.SetSavePath(defaultLoc.Path)
+		}
+	})
+	resetFolderBtn.Importance = widget.MediumImportance
 
-	// ─── TAB 2: Mirrors & Network Health ────────────────────────
+	var folderActionRow fyne.CanvasObject
+	if isMobile {
+		folderActionRow = container.NewVBox(changeFolderBtn, resetFolderBtn)
+	} else {
+		folderActionRow = container.NewHBox(changeFolderBtn, openFolderBtn, resetFolderBtn)
+	}
+	downloadsBox.Add(folderActionRow)
+
+	downloadsBox.Add(widget.NewSeparator())
+
+	// Open after download check
+	openAfterCheck := widget.NewCheck("Open completed files automatically", func(enabled bool) {
+		_ = ctrl.SetOpenAfterDownload(enabled)
+		SaveAutoOpenBook(enabled)
+	})
+	openAfterCheck.SetChecked(currentSettings.OpenAfterDownload)
+	downloadsBox.Add(openAfterCheck)
+
+	// Auto-queue check
+	autoQueueCheck := widget.NewCheck("Automatically enqueue downloads when active", func(enabled bool) {
+		_ = ctrl.SetAutoQueue(enabled)
+		SaveAutoQueue(enabled)
+	})
+	autoQueueCheck.SetChecked(currentSettings.AutoQueue)
+	downloadsBox.Add(autoQueueCheck)
+
+	// Existing file behavior
+	existingLabel := widget.NewLabelWithStyle("When a file already exists:", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	downloadsBox.Add(existingLabel)
+
+	existingFileSelect := widget.NewSelect(
+		[]string{"Rename automatically", "Overwrite", "Skip"},
+		func(selected string) {
+			var action settings.ExistingFileAction
+			switch selected {
+			case "Rename automatically":
+				action = settings.ExistingFileRename
+			case "Overwrite":
+				action = settings.ExistingFileOverwrite
+			case "Skip":
+				action = settings.ExistingFileSkip
+			default:
+				action = settings.ExistingFileRename
+			}
+			_ = ctrl.SetExistingFileAction(action)
+		},
+	)
+	switch currentSettings.ExistingFileAction {
+	case settings.ExistingFileOverwrite:
+		existingFileSelect.SetSelected("Overwrite")
+	case settings.ExistingFileSkip:
+		existingFileSelect.SetSelected("Skip")
+	default:
+		existingFileSelect.SetSelected("Rename automatically")
+	}
+	downloadsBox.Add(existingFileSelect)
+
+	// Quick presets for convenience
+	presets := GetLocationPresets(isMobile)
+	if len(presets) > 0 {
+		downloadsBox.Add(widget.NewSeparator())
+		presetLabel := widget.NewLabelWithStyle("Quick Location Presets:", fyne.TextAlignLeading, fyne.TextStyle{Italic: true})
+		downloadsBox.Add(presetLabel)
+
+		var presetLabels []string
+		for _, p := range presets {
+			presetLabels = append(presetLabels, p.Label)
+		}
+		presetRadio := widget.NewRadioGroup(presetLabels, func(choice string) {
+			for _, p := range presets {
+				if p.Label == choice {
+					loc := storage.Location{
+						Kind:        storage.LocationDesktopPath,
+						Path:        p.Path,
+						DisplayName: p.Path,
+					}
+					if isMobile || strings.HasPrefix(p.Path, "content://") {
+						loc.Kind = storage.LocationAndroidSAF
+						loc.URI = p.Path
+					}
+					_ = targetProv.Set(loc)
+					currentSettings.DownloadLocation = loc.Path
+					currentSettings.StorageURI = loc.URI
+					currentSettings.StorageDisplayName = loc.DisplayName
+					_ = repo.Save(currentSettings)
+
+					pathDisplay.SetText(p.Path)
+					updatePathStatus(p.Path)
+					SaveConfiguredSavePath(p.Path)
+					if a.downloadBar != nil {
+						a.downloadBar.SetSavePath(p.Path)
+					}
+					break
+				}
+			}
+		})
+		for _, p := range presets {
+			if NormalizePath(p.Path) == NormalizePath(curDisplay) {
+				presetRadio.SetSelected(p.Label)
+				break
+			}
+		}
+		downloadsBox.Add(presetRadio)
+	}
+
+	// ─── TAB 2: Network ─────────────────────────────────────────
 	networkBox := container.NewVBox()
+
+	timeoutHeader := widget.NewLabelWithStyle("Network Timeout & Retry Limit", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	networkBox.Add(timeoutHeader)
+
+	timeoutLabel := widget.NewLabel("Request Timeout:")
+	timeoutSelect := widget.NewSelect([]string{"10 seconds", "15 seconds (Recommended)", "30 seconds", "45 seconds", "60 seconds"}, func(s string) {
+		sec := 15
+		switch {
+		case strings.HasPrefix(s, "10"):
+			sec = 10
+		case strings.HasPrefix(s, "15"):
+			sec = 15
+		case strings.HasPrefix(s, "30"):
+			sec = 30
+		case strings.HasPrefix(s, "45"):
+			sec = 45
+		case strings.HasPrefix(s, "60"):
+			sec = 60
+		}
+		_ = ctrl.SetNetworkTimeout(time.Duration(sec) * time.Second)
+		SaveNetworkTimeoutSec(sec)
+	})
+	switch int(currentSettings.RequestTimeout.Seconds()) {
+	case 10:
+		timeoutSelect.SetSelected("10 seconds")
+	case 30:
+		timeoutSelect.SetSelected("30 seconds")
+	case 45:
+		timeoutSelect.SetSelected("45 seconds")
+	case 60:
+		timeoutSelect.SetSelected("60 seconds")
+	default:
+		timeoutSelect.SetSelected("15 seconds (Recommended)")
+	}
+	networkBox.Add(container.NewHBox(timeoutLabel, timeoutSelect))
+
+	retryLabel := widget.NewLabel("Retry Limit:")
+	retrySelect := widget.NewSelect([]string{"1 retry", "2 retries (Default)", "3 retries", "5 retries"}, func(s string) {
+		r := 2
+		switch {
+		case strings.HasPrefix(s, "1"):
+			r = 1
+		case strings.HasPrefix(s, "2"):
+			r = 2
+		case strings.HasPrefix(s, "3"):
+			r = 3
+		case strings.HasPrefix(s, "5"):
+			r = 5
+		}
+		_ = ctrl.SetRetryCount(r)
+		SaveMaxRetries(r)
+	})
+	switch currentSettings.RetryCount {
+	case 1:
+		retrySelect.SetSelected("1 retry")
+	case 3:
+		retrySelect.SetSelected("3 retries")
+	case 5:
+		retrySelect.SetSelected("5 retries")
+	default:
+		retrySelect.SetSelected("2 retries (Default)")
+	}
+	networkBox.Add(container.NewHBox(retryLabel, retrySelect))
+
+	ipfsCheck := widget.NewCheck("Enable IPFS Gateway fallback downloads if primary mirror fails", func(val bool) {
+		_ = ctrl.SetEnableIPFS(val)
+		SaveEnableIPFS(val)
+	})
+	ipfsCheck.SetChecked(currentSettings.EnableIPFS)
+	networkBox.Add(ipfsCheck)
+
+	// ─── TAB 3: Mirrors ─────────────────────────────────────────
+	mirrorsBox := container.NewVBox()
 
 	mirrorSummaryLabel := widget.NewLabelWithStyle("Checking mirror health…", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
 	mirrorListContainer := container.NewVBox()
@@ -207,7 +432,7 @@ func ShowFullSettingsDialog(a *App, initialTab int) {
 		mirrorListContainer.Refresh()
 	}
 
-	testAllBtn := widget.NewButtonWithIcon("Test All Mirrors", theme.ViewRefreshIcon(), func() {
+	recheckAllBtn := widget.NewButtonWithIcon("Recheck Mirrors", theme.ViewRefreshIcon(), func() {
 		mirrorSummaryLabel.SetText("⏳ Probing all mirrors concurrently…")
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -215,16 +440,15 @@ func ShowFullSettingsDialog(a *App, initialTab int) {
 			healthMgr.ProbeAll(ctx)
 		}()
 	})
-	testAllBtn.Importance = widget.HighImportance
+	recheckAllBtn.Importance = widget.HighImportance
 
-	networkBox.Add(container.NewBorder(nil, nil, mirrorSummaryLabel, testAllBtn, widget.NewLabel("")))
-	networkBox.Add(widget.NewSeparator())
-	networkBox.Add(mirrorListContainer)
+	mirrorsBox.Add(container.NewBorder(nil, nil, mirrorSummaryLabel, recheckAllBtn, widget.NewLabel("")))
+	mirrorsBox.Add(widget.NewSeparator())
+	mirrorsBox.Add(mirrorListContainer)
 
-	// Preferred Mirror option
-	networkBox.Add(widget.NewSeparator())
+	mirrorsBox.Add(widget.NewSeparator())
 	prefMirrorLabel := widget.NewLabelWithStyle("Preferred Search Mirror:", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
-	networkBox.Add(prefMirrorLabel)
+	mirrorsBox.Add(prefMirrorLabel)
 
 	mirrorOptions := []string{"Automatic (Fastest / Recommended)"}
 	for _, m := range libgen.SearchMirrors {
@@ -232,138 +456,88 @@ func ShowFullSettingsDialog(a *App, initialTab int) {
 	}
 	prefMirrorSelect := widget.NewSelect(mirrorOptions, func(selected string) {
 		if strings.HasPrefix(selected, "Automatic") {
+			_ = ctrl.SetMirrorMode(settings.MirrorModeAutomatic, "auto")
 			SavePreferredMirror("auto")
 		} else {
+			_ = ctrl.SetMirrorMode(settings.MirrorModePreferred, selected)
 			SavePreferredMirror(selected)
 		}
 	})
-	currentPref := GetPreferredMirror()
-	if currentPref == "" || currentPref == "auto" {
-		prefMirrorSelect.SetSelected("Automatic (Fastest / Recommended)")
+	if currentSettings.MirrorMode == settings.MirrorModePreferred && currentSettings.PreferredMirror != "" && currentSettings.PreferredMirror != "auto" {
+		prefMirrorSelect.SetSelected(currentSettings.PreferredMirror)
 	} else {
-		prefMirrorSelect.SetSelected(currentPref)
+		prefMirrorSelect.SetSelected("Automatic (Fastest / Recommended)")
 	}
-	networkBox.Add(prefMirrorSelect)
-
-	// Network Timeout & Retries
-	timeoutLabel := widget.NewLabelWithStyle("Network Request Timeout:", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
-	timeoutSelect := widget.NewSelect([]string{"10 seconds", "15 seconds (Recommended)", "30 seconds", "45 seconds"}, func(s string) {
-		switch {
-		case strings.HasPrefix(s, "10"):
-			SaveNetworkTimeoutSec(10)
-		case strings.HasPrefix(s, "15"):
-			SaveNetworkTimeoutSec(15)
-		case strings.HasPrefix(s, "30"):
-			SaveNetworkTimeoutSec(30)
-		case strings.HasPrefix(s, "45"):
-			SaveNetworkTimeoutSec(45)
-		}
-	})
-	curTimeout := GetNetworkTimeout().Seconds()
-	switch int(curTimeout) {
-	case 10:
-		timeoutSelect.SetSelected("10 seconds")
-	case 30:
-		timeoutSelect.SetSelected("30 seconds")
-	case 45:
-		timeoutSelect.SetSelected("45 seconds")
-	default:
-		timeoutSelect.SetSelected("15 seconds (Recommended)")
-	}
-	networkBox.Add(container.NewHBox(timeoutLabel, timeoutSelect))
-
-	// IPFS Fallback Checkbox
-	ipfsCheck := widget.NewCheck("Enable IPFS Gateway fallback downloads if primary mirror fails", func(val bool) {
-		SaveEnableIPFS(val)
-	})
-	ipfsCheck.SetChecked(GetEnableIPFS())
-	networkBox.Add(ipfsCheck)
+	mirrorsBox.Add(prefMirrorSelect)
 
 	renderMirrors()
 
-	// ─── TAB 3: Downloads & Queue ───────────────────────────────
-	downloadsBox := container.NewVBox()
+	// ─── TAB 4: Appearance ──────────────────────────────────────
+	appearanceBox := container.NewVBox()
 
-	queueSectionHeader := widget.NewLabelWithStyle("Queue & Concurrency", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
-	downloadsBox.Add(queueSectionHeader)
+	themeHeader := widget.NewLabelWithStyle("Theme Selection", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	appearanceBox.Add(themeHeader)
 
-	autoQueueCheck := widget.NewCheck("Automatically enqueue books when a download is in progress", func(val bool) {
-		SaveAutoQueue(val)
+	themeSelect := widget.NewSelect([]string{"System Default", "Dark Theme", "Light Theme"}, func(choice string) {
+		var t settings.Theme
+		switch choice {
+		case "Dark Theme":
+			t = settings.ThemeDark
+		case "Light Theme":
+			t = settings.ThemeLight
+		default:
+			t = settings.ThemeSystem
+		}
+		_ = ctrl.SetTheme(t)
 	})
-	autoQueueCheck.SetChecked(GetAutoQueue())
-	downloadsBox.Add(autoQueueCheck)
+	switch currentSettings.Theme {
+	case settings.ThemeDark:
+		themeSelect.SetSelected("Dark Theme")
+	case settings.ThemeLight:
+		themeSelect.SetSelected("Light Theme")
+	default:
+		themeSelect.SetSelected("System Default")
+	}
+	appearanceBox.Add(themeSelect)
 
-	autoOpenCheck := widget.NewCheck("Automatically open book after download completes", func(val bool) {
-		SaveAutoOpenBook(val)
-	})
-	autoOpenCheck.SetChecked(GetAutoOpenBook())
-	downloadsBox.Add(autoOpenCheck)
-
-	downloadsBox.Add(widget.NewSeparator())
+	appearanceBox.Add(widget.NewSeparator())
 	filterHeader := widget.NewLabelWithStyle("Default Format Filter", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
-	downloadsBox.Add(filterHeader)
+	appearanceBox.Add(filterHeader)
 
 	formatSelect := widget.NewSelect(formatOptions, func(val string) {
+		_ = ctrl.SetDefaultFormat(val)
 		SaveDefaultFormatFilter(val)
 		if a.searchBar != nil && a.searchBar.format != nil {
 			a.searchBar.format.SetSelected(val)
 		}
 	})
 	formatSelect.SetSelected(GetDefaultFormatFilter())
-	downloadsBox.Add(formatSelect)
+	appearanceBox.Add(formatSelect)
 
-	// ─── TAB 4: About & System ──────────────────────────────────
-	aboutBox := container.NewVBox()
-
+	appearanceBox.Add(widget.NewSeparator())
 	appNameLbl := widget.NewLabelWithStyle("LibGen Downloader v2.0.0", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
-	aboutBox.Add(appNameLbl)
+	appearanceBox.Add(appNameLbl)
+	platformInfo := fmt.Sprintf("Platform: %s/%s • Go %s • Build 48", runtime.GOOS, runtime.GOARCH, runtime.Version())
+	appearanceBox.Add(widget.NewLabel(platformInfo))
 
-	platformInfo := fmt.Sprintf("Platform: %s/%s • Go %s • Build 47", runtime.GOOS, runtime.GOARCH, runtime.Version())
-	aboutBox.Add(widget.NewLabel(platformInfo))
-	aboutBox.Add(widget.NewLabel("Ultra-fast, multi-mirror book search and resilient download manager."))
-
-	aboutBox.Add(widget.NewSeparator())
-	resetBtn := widget.NewButtonWithIcon("Reset All Settings to Defaults", theme.DeleteIcon(), func() {
-		confirmDlg := dialog.NewConfirm("Reset Settings", "Are you sure you want to reset all settings to defaults?", func(confirmed bool) {
-			if confirmed {
-				ResetAllSettings(isMobile)
-				selectedPath = GetDefaultSavePath(isMobile)
-				pathDisplay.SetText(selectedPath)
-				updatePathStatus(selectedPath)
-				if a.downloadBar != nil {
-					a.downloadBar.SetSavePath(selectedPath)
-				}
-				autoQueueCheck.SetChecked(DefaultAutoQueue)
-				autoOpenCheck.SetChecked(DefaultAutoOpenBook)
-				formatSelect.SetSelected(DefaultFormatFilter)
-				ipfsCheck.SetChecked(DefaultEnableIPFS)
-				prefMirrorSelect.SetSelected("Automatic (Fastest / Recommended)")
-				timeoutSelect.SetSelected("15 seconds (Recommended)")
-			}
-		}, a.window)
-		confirmDlg.Show()
-	})
-	resetBtn.Importance = widget.DangerImportance
-	aboutBox.Add(resetBtn)
-
+	// ─── Tabs Construction ──────────────────────────────────────
 	var tabs *container.AppTabs
 	if isMobile {
 		tabs = container.NewAppTabs(
-			container.NewTabItem("Storage", container.NewVScroll(container.NewPadded(storageBox))),
-			container.NewTabItem("Mirrors", container.NewVScroll(container.NewPadded(networkBox))),
-			container.NewTabItem("Queue", container.NewVScroll(container.NewPadded(downloadsBox))),
-			container.NewTabItem("About", container.NewVScroll(container.NewPadded(aboutBox))),
+			container.NewTabItem("Downloads", container.NewVScroll(container.NewPadded(downloadsBox))),
+			container.NewTabItem("Network", container.NewVScroll(container.NewPadded(networkBox))),
+			container.NewTabItem("Mirrors", container.NewVScroll(container.NewPadded(mirrorsBox))),
+			container.NewTabItem("Appearance", container.NewVScroll(container.NewPadded(appearanceBox))),
 		)
 	} else {
 		tabs = container.NewAppTabs(
-			container.NewTabItemWithIcon("Storage", theme.FolderIcon(), container.NewVScroll(container.NewPadded(storageBox))),
-			container.NewTabItemWithIcon("Mirrors", theme.ViewRefreshIcon(), container.NewVScroll(container.NewPadded(networkBox))),
 			container.NewTabItemWithIcon("Downloads", theme.DownloadIcon(), container.NewVScroll(container.NewPadded(downloadsBox))),
-			container.NewTabItemWithIcon("About", theme.InfoIcon(), container.NewVScroll(container.NewPadded(aboutBox))),
+			container.NewTabItemWithIcon("Network", theme.HelpIcon(), container.NewVScroll(container.NewPadded(networkBox))),
+			container.NewTabItemWithIcon("Mirrors", theme.ViewRefreshIcon(), container.NewVScroll(container.NewPadded(mirrorsBox))),
+			container.NewTabItemWithIcon("Appearance", theme.ColorPaletteIcon(), container.NewVScroll(container.NewPadded(appearanceBox))),
 		)
 	}
 
-	// Subscribe to live mirror updates while the dialog is open
 	unsub := healthMgr.Subscribe(func(activeS, totalS, activeA, totalA int) {
 		renderMirrors()
 	})
@@ -380,7 +554,7 @@ func ShowFullSettingsDialog(a *App, initialTab int) {
 	})
 	closeBtn.Importance = widget.HighImportance
 
-	dialogSize := fyne.NewSize(540, 480)
+	dialogSize := fyne.NewSize(560, 500)
 	if isMobile && a.window != nil {
 		wSize := a.window.Canvas().Size()
 		if wSize.Width > 0 && wSize.Height > 0 {
