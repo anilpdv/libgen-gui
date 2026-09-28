@@ -3,21 +3,22 @@ import clsx from 'clsx'
 
 const baseStyles = {
   solid:
-    'inline-flex justify-center rounded-lg py-2 px-3 text-sm font-semibold transition-colors',
+    'inline-flex items-center justify-center rounded-lg px-5 py-2.5 min-h-[44px] text-sm font-semibold transition-all duration-150 active:scale-[0.98]',
   outline:
-    'inline-flex justify-center rounded-lg border py-[calc(--spacing(2)-1px)] px-[calc(--spacing(3)-1px)] text-sm transition-colors',
+    'inline-flex items-center justify-center rounded-lg border px-5 py-2.5 min-h-[44px] text-sm font-semibold transition-all duration-150 active:scale-[0.98]',
 }
 
 const variantStyles = {
   solid: {
-    cyan: 'relative overflow-hidden bg-cyan-500 text-white before:absolute before:inset-0 active:before:bg-transparent hover:before:bg-white/10 active:bg-cyan-600 active:text-white/80 before:transition-colors',
+    cyan: 'bg-cyan-600 text-white hover:bg-cyan-700 active:bg-cyan-800 shadow-sm shadow-cyan-600/20',
     white:
-      'bg-white text-cyan-900 hover:bg-white/90 active:bg-white/90 active:text-cyan-900/70',
-    gray: 'bg-gray-800 text-white hover:bg-gray-900 active:bg-gray-800 active:text-white/80',
+      'bg-white text-gray-900 hover:bg-gray-100 active:bg-gray-200 shadow-sm',
+    gray: 'bg-gray-900 text-white hover:bg-gray-800 active:bg-gray-950 shadow-sm',
   },
   outline: {
-    gray: 'border-gray-300 text-gray-700 hover:border-gray-400 active:bg-gray-100 active:text-gray-700/80',
-    white: 'border-white/30 text-white hover:border-white/60 active:bg-white/10 active:text-white/90',
+    gray: 'border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 active:bg-gray-100',
+    white: 'border-white/40 text-white hover:border-white hover:bg-white/10 active:bg-white/20',
+    cyan: 'border-cyan-500/40 text-cyan-600 hover:border-cyan-600 hover:bg-cyan-50 active:bg-cyan-100',
   },
 }
 

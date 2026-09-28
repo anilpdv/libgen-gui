@@ -1,50 +1,117 @@
 import Link from 'next/link'
-
 import { Button } from '@/components/Button'
 import { Container } from '@/components/Container'
 import { Logomark } from '@/components/Logo'
-import { NavLinks } from '@/components/NavLinks'
+
+const footerLinks = {
+  product: [
+    { label: 'Features', href: '#features' },
+    { label: 'Architecture', href: '#architecture' },
+    { label: 'Use Cases', href: '#use-cases' },
+    { label: 'Downloads', href: '#downloads' },
+    { label: 'FAQs', href: '#faqs' },
+  ],
+  resources: [
+    { label: 'GitHub Repository', href: 'https://github.com/anilpdv/libgen-gui' },
+    { label: 'Releases (v2.0.1)', href: 'https://github.com/anilpdv/libgen-gui/releases' },
+    { label: 'Issue Tracker', href: 'https://github.com/anilpdv/libgen-gui/issues' },
+    { label: 'Discussions', href: 'https://github.com/anilpdv/libgen-gui/discussions' },
+  ],
+  project: [
+    { label: 'Documentation', href: 'https://github.com/anilpdv/libgen-gui#readme' },
+    { label: 'MIT License', href: 'https://github.com/anilpdv/libgen-gui/blob/main/LICENSE' },
+    { label: 'Legal Notice', href: '#faqs' },
+  ],
+}
 
 export function Footer() {
   return (
-    <footer className="border-t border-gray-200 bg-white">
-      <Container>
-        <div className="flex flex-col items-start justify-between gap-y-12 pt-16 pb-8 lg:flex-row lg:items-center lg:py-16">
-          <div>
-            <div className="flex items-center text-gray-900">
-              <Logomark className="h-10 w-10 flex-none fill-cyan-500" />
-              <div className="ml-4">
-                <p className="text-lg font-bold tracking-tight">LibGen GUI</p>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  Fast, native book & paper search and downloader.
-                </p>
-              </div>
+    <footer className="border-t border-gray-200/90 bg-gray-900 text-gray-400">
+      <Container className="py-16 sm:py-20">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="lg:col-span-2">
+            <div className="flex items-center gap-3 text-white">
+              <Logomark className="h-8 w-8 shrink-0 rounded-lg shadow-sm" />
+              <span className="text-lg font-bold tracking-tight">
+                LibGen <span className="text-cyan-400">GUI</span>
+              </span>
             </div>
-            <nav className="mt-8 flex flex-wrap gap-x-8 gap-y-3">
-              <NavLinks />
-            </nav>
+            <p className="mt-4 text-sm text-gray-300 leading-relaxed max-w-sm">
+              Fast, lightweight native client for searching, discovering, and downloading research papers and books with automatic mirror failover and queue recovery.
+            </p>
+            <div className="mt-6">
+              <Button
+                href="#downloads"
+                variant="solid"
+                color="cyan"
+                className="text-xs font-semibold py-2 px-4"
+              >
+                Download App (v2.0.1)
+              </Button>
+            </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button
-              href="https://github.com/anilpdv/libgen-gui/releases"
-              color="cyan"
-            >
-              Download Latest Release (v2.0.0)
-            </Button>
-            <Button
-              href="https://github.com/anilpdv/libgen-gui"
-              variant="outline"
-            >
-              GitHub Repository
-            </Button>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-200">
+              Product
+            </p>
+            <ul role="list" className="mt-4 space-y-2.5">
+              {footerLinks.product.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-200">
+              Resources
+            </p>
+            <ul role="list" className="mt-4 space-y-2.5">
+              {footerLinks.resources.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-200">
+              Project
+            </p>
+            <ul role="list" className="mt-4 space-y-2.5">
+              {footerLinks.project.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    className="text-sm text-gray-400 hover:text-white transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
-        <div className="flex flex-col items-center justify-between border-t border-gray-100 py-8 md:flex-row">
-          <p className="text-xs text-gray-500">
-            &copy; {new Date().getFullYear()} LibGen GUI Contributors. MIT Licensed.
+
+        <div className="mt-14 pt-8 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
+          <p>
+            &copy; {new Date().getFullYear()} LibGen GUI Contributors. Distributed under the MIT License.
           </p>
-          <p className="mt-4 text-xs text-gray-400 md:mt-0">
-            Built with Go & Fyne • Designed for academic research and fair use.
+          <p className="text-gray-500">
+            Independent search client designed for research and academic study.
           </p>
         </div>
       </Container>

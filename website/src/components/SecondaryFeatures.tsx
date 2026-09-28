@@ -1,5 +1,3 @@
-import { useId } from 'react'
-
 import { Container } from '@/components/Container'
 
 const features = [
@@ -12,117 +10,87 @@ const features = [
   {
     name: 'Atomic Resumable Downloads',
     description:
-      'Download safely with temporary .part file isolation, HTTP Range chunk resumption, and automatic cleanup on error or cancellation.',
+      'Download safely with temporary .part file isolation, HTTP Range chunk resumption, and atomic rename upon verified completion.',
     icon: DownloadIcon,
   },
   {
     name: 'Android Scoped Storage (SAF)',
     description:
-      'Native DocumentFile and Storage Access Framework integration ensuring smooth downloads on Android 10 through Android 15.',
-  icon: AndroidIcon,
+      'Native DocumentFile and Storage Access Framework integration ensuring direct folder selection on Android 10 through Android 15.',
+    icon: AndroidIcon,
   },
   {
-    name: 'Zero Electron Overhead',
+    name: 'Decoupled Clean Architecture',
     description:
-      'Compiled with pure Go and Fyne into a single standalone native executable that uses less than 35MB of RAM.',
-    icon: SpeedIcon,
+      'Modular Go packages separating network mirrors, download queues, storage targets, and Fyne vector UI into testable layers.',
+    icon: ArchitectureIcon,
   },
   {
-    name: 'Continuous Health Probing',
+    name: 'Continuous Mirror Health Prober',
     description:
-      'Probes mirror response times in the background with exponential backoff and automatic cooldown for degraded nodes.',
+      'Probes mirror response times in the background with exponential backoff and automatic failover for degraded or blocked nodes.',
     icon: ShieldIcon,
   },
   {
     name: 'Persistent Crash-Safe Queue',
     description:
-      'Atomic JSON ledger keeps your download queue safe across app restarts and sudden network disconnections.',
+      'Atomic JSON ledger preserves your FIFO download queue and captures per-task destinations across application restarts.',
     icon: QueueIcon,
   },
 ]
 
 function SearchIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
-    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true" {...props}>
-      <circle cx={16} cy={16} r={16} fill="#06B6D4" fillOpacity={0.12} />
-      <path
-        d="M14 19a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm3.5-1.5L22 22"
-        stroke="#0891B2"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <circle cx={11} cy={11} r={7} stroke="#0891b2" strokeWidth="2" />
+      <path d="M16 16l5 5" stroke="#0891b2" strokeWidth="2" strokeLinecap="round" />
     </svg>
   )
 }
 
 function DownloadIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
-    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true" {...props}>
-      <circle cx={16} cy={16} r={16} fill="#06B6D4" fillOpacity={0.12} />
-      <path
-        d="M11 15l5 5 5-5M16 9v11M10 23h12"
-        stroke="#0891B2"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path d="M12 4v12M7 11l5 5 5-5M4 19h16" stroke="#0891b2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
 
 function AndroidIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
-    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true" {...props}>
-      <circle cx={16} cy={16} r={16} fill="#06B6D4" fillOpacity={0.12} />
-      <path
-        d="M10 18v5M22 18v5M13 23v4M19 23v4M12 14a4 4 0 0 1 8 0v8H12v-8z"
-        stroke="#0891B2"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path d="M4 10v6M20 10v6M9 17v4M15 17v4M7 9a5 5 0 0 1 10 0v8H7V9z" stroke="#0891b2" strokeWidth="2" strokeLinecap="round" />
+      <circle cx={10} cy={11} r={1} fill="#0891b2" />
+      <circle cx={14} cy={11} r={1} fill="#0891b2" />
     </svg>
   )
 }
 
-function SpeedIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
+function ArchitectureIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
-    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true" {...props}>
-      <circle cx={16} cy={16} r={16} fill="#06B6D4" fillOpacity={0.12} />
-      <path
-        d="M16 11v5l3 3M9 16a7 7 0 1 1 14 0 7 7 0 0 1-14 0z"
-        stroke="#0891B2"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <rect x={3} y={3} width={7} height={7} rx={1.5} stroke="#0891b2" strokeWidth="2" />
+      <rect x={14} y={3} width={7} height={7} rx={1.5} stroke="#0891b2" strokeWidth="2" />
+      <rect x={3} y={14} width={7} height={7} rx={1.5} stroke="#0891b2" strokeWidth="2" />
+      <rect x={14} y={14} width={7} height={7} rx={1.5} stroke="#0891b2" strokeWidth="2" />
     </svg>
   )
 }
 
 function ShieldIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
-    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true" {...props}>
-      <circle cx={16} cy={16} r={16} fill="#06B6D4" fillOpacity={0.12} />
-      <path
-        d="M16 9l6 3v4c0 4-3 7-6 8-3-1-6-4-6-8v-4l6-3z"
-        stroke="#0891B2"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path d="M12 3l8 3.5v5c0 5-3.5 8.5-8 9.5-4.5-1-8-4.5-8-9.5v-5L12 3z" stroke="#0891b2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 12l2 2 4-4" stroke="#0891b2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
 
 function QueueIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
-    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true" {...props}>
-      <circle cx={16} cy={16} r={16} fill="#06B6D4" fillOpacity={0.12} />
-      <path
-        d="M10 11h12M10 16h12M10 21h8"
-        stroke="#0891B2"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path d="M4 6h16M4 12h16M4 18h10" stroke="#0891b2" strokeWidth="2" strokeLinecap="round" />
+      <circle cx={18} cy={18} r={3} stroke="#0891b2" strokeWidth="2" />
     </svg>
   )
 }
@@ -130,36 +98,44 @@ function QueueIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
 export function SecondaryFeatures() {
   return (
     <section
-      id="secondary-features"
-      aria-label="Technical Highlights"
-      className="py-20 sm:py-32"
+      id="architecture"
+      aria-label="Architecture & Capabilities"
+      className="py-20 sm:py-28 bg-white border-t border-gray-200/80"
     >
       <Container>
         <div className="mx-auto max-w-2xl sm:text-center">
-          <h2 className="text-3xl font-medium tracking-tight text-gray-900 sm:text-4xl">
+          <div className="inline-flex items-center gap-2 rounded-full bg-cyan-50 px-3.5 py-1 text-xs font-semibold text-cyan-800 ring-1 ring-cyan-700/15 mb-4">
+            <span>CORE ARCHITECTURE</span>
+          </div>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
             Modern architecture. High performance.
           </h2>
-          <p className="mt-3 text-lg text-gray-600 leading-relaxed">
-            Designed for researchers, students, and bibliophiles who need dependable access without frustrating browser CAPTCHAs, stalled tabs, or failed downloads.
+          <p className="mt-4 text-base text-gray-600 leading-relaxed sm:text-lg">
+            Built for researchers, students, and technical readers who need dependable access without browser CAPTCHAs, stalled tabs, or failed downloads.
           </p>
         </div>
-        <ul
-          role="list"
-          className="mx-auto mt-16 grid max-w-2xl grid-cols-1 gap-6 text-sm sm:mt-20 sm:grid-cols-2 md:gap-y-10 lg:max-w-none lg:grid-cols-3"
-        >
-          {features.map((feature) => (
-            <li
-              key={feature.name}
-              className="rounded-2xl border border-gray-200/80 p-8 transition-shadow hover:shadow-md hover:border-cyan-200"
-            >
-              <feature.icon className="h-8 w-8" />
-              <h3 className="mt-6 font-semibold text-gray-900 text-base">
-                {feature.name}
-              </h3>
-              <p className="mt-2 text-gray-600 leading-relaxed">{feature.description}</p>
-            </li>
-          ))}
-        </ul>
+
+        <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {features.map((feature) => {
+            let Icon = feature.icon
+            return (
+              <div
+                key={feature.name}
+                className="rounded-2xl border border-gray-200/80 bg-white p-6 shadow-2xs hover:border-cyan-400/80 hover:shadow-md transition-all duration-200"
+              >
+                <div className="rounded-xl bg-cyan-50 p-3 w-fit text-cyan-600">
+                  <Icon className="h-6 w-6" />
+                </div>
+                <h3 className="mt-5 text-base font-semibold text-gray-900">
+                  {feature.name}
+                </h3>
+                <p className="mt-2 text-sm text-gray-600 leading-relaxed">
+                  {feature.description}
+                </p>
+              </div>
+            )
+          })}
+        </div>
       </Container>
     </section>
   )

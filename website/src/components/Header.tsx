@@ -18,7 +18,7 @@ function MenuIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
       <path
-        d="M5 6h14M5 18h14M5 12h14"
+        d="M4 6h16M4 12h16M4 18h16"
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -27,11 +27,11 @@ function MenuIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   )
 }
 
-function ChevronUpIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
+function CloseIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
       <path
-        d="M17 14l-5-5-5 5"
+        d="M6 18L18 6M6 6l12 12"
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -61,7 +61,7 @@ function MobileNavLink(
   return (
     <PopoverButton
       as={Link}
-      className="block text-base/7 tracking-tight text-gray-700"
+      className="block text-base font-medium py-2 text-gray-800 hover:text-cyan-600 transition-colors"
       {...props}
     />
   )
@@ -69,32 +69,54 @@ function MobileNavLink(
 
 export function Header() {
   return (
-    <header>
-      <nav>
-        <Container className="relative z-50 flex justify-between py-6">
-          <div className="relative z-10 flex items-center gap-12">
-            <Link href="/" aria-label="Home">
+    <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200/80 transition-all">
+      <nav aria-label="Main Navigation">
+        <Container className="flex h-[70px] items-center justify-between">
+          <div className="flex items-center gap-8 lg:gap-10">
+            <Link href="/" aria-label="LibGen GUI Home">
               <Logo />
             </Link>
-            <div className="hidden lg:flex lg:gap-8">
+            <div className="hidden lg:flex lg:items-center lg:gap-7">
               <NavLinks />
             </div>
           </div>
-          <div className="flex items-center gap-4">
+
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex sm:items-center sm:gap-3">
+              <Button
+                href="https://github.com/anilpdv/libgen-gui"
+                variant="outline"
+                color="gray"
+                className="gap-2"
+                aria-label="View source repository on GitHub"
+              >
+                <GithubIcon className="h-4 w-4 text-gray-700" />
+                <span>GitHub</span>
+              </Button>
+              <Button
+                href="#downloads"
+                variant="solid"
+                color="cyan"
+                aria-label="Download LibGen GUI application"
+              >
+                Download App
+              </Button>
+            </div>
+
             <Popover className="lg:hidden">
               {({ open }) => (
                 <>
                   <PopoverButton
-                    className="relative z-10 -m-2 inline-flex items-center rounded-lg stroke-gray-900 p-2 hover:bg-gray-200/50 hover:stroke-gray-600 focus:not-data-focus:outline-hidden active:stroke-gray-900"
-                    aria-label="Toggle site navigation"
+                    className="relative z-10 inline-flex items-center justify-center rounded-lg p-2.5 text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus:outline-hidden"
+                    aria-expanded={open}
+                    aria-controls="mobile-navigation-panel"
+                    aria-label={open ? 'Close main menu' : 'Open main menu'}
                   >
-                    {({ open }) =>
-                      open ? (
-                        <ChevronUpIcon className="h-6 w-6" />
-                      ) : (
-                        <MenuIcon className="h-6 w-6" />
-                      )
-                    }
+                    {open ? (
+                      <CloseIcon className="h-6 w-6 stroke-current" />
+                    ) : (
+                      <MenuIcon className="h-6 w-6 stroke-current" />
+                    )}
                   </PopoverButton>
                   <AnimatePresence initial={false}>
                     {open && (
@@ -105,38 +127,48 @@ export function Header() {
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
-                          className="fixed inset-0 z-0 bg-gray-300/60 backdrop-blur-sm"
+                          className="fixed inset-0 z-40 bg-gray-900/40 backdrop-blur-xs"
                         />
                         <PopoverPanel
                           static
+                          id="mobile-navigation-panel"
                           as={motion.div}
-                          initial={{ opacity: 0, y: -32 }}
+                          initial={{ opacity: 0, y: -16 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{
                             opacity: 0,
-                            y: -32,
-                            transition: { duration: 0.2 },
+                            y: -16,
+                            transition: { duration: 0.15 },
                           }}
-                          className="absolute inset-x-0 top-0 z-0 origin-top rounded-b-2xl bg-gray-50 px-6 pt-28 pb-6 shadow-2xl shadow-gray-900/20"
+                          className="absolute inset-x-4 top-20 z-50 origin-top rounded-2xl bg-white p-6 shadow-xl ring-1 ring-gray-900/10"
                         >
-                          <div className="space-y-4">
-                            <MobileNavLink href="#features">Features</MobileNavLink>
-                            <MobileNavLink href="#mirrors">Mirror Network</MobileNavLink>
-                            <MobileNavLink href="#downloads">Downloads</MobileNavLink>
-                            <MobileNavLink href="#architecture">Architecture</MobileNavLink>
-                            <MobileNavLink href="#faqs">FAQs</MobileNavLink>
-                          </div>
-                          <div className="mt-8 flex flex-col gap-4">
-                            <Button
-                              href="https://github.com/anilpdv/libgen-gui"
-                              variant="outline"
-                            >
-                              <GithubIcon className="h-5 w-5 mr-2" />
-                              GitHub Repo
-                            </Button>
-                            <Button href="#downloads">
-                              Download v2.0
-                            </Button>
+                          <div className="divide-y divide-gray-100">
+                            <div className="space-y-1 pb-4">
+                              <MobileNavLink href="#features">Features</MobileNavLink>
+                              <MobileNavLink href="#architecture">Architecture</MobileNavLink>
+                              <MobileNavLink href="#use-cases">Use Cases</MobileNavLink>
+                              <MobileNavLink href="#downloads">Downloads</MobileNavLink>
+                              <MobileNavLink href="#faqs">FAQs</MobileNavLink>
+                            </div>
+                            <div className="pt-4 flex flex-col gap-3">
+                              <Button
+                                href="#downloads"
+                                variant="solid"
+                                color="cyan"
+                                className="w-full"
+                              >
+                                Download App
+                              </Button>
+                              <Button
+                                href="https://github.com/anilpdv/libgen-gui"
+                                variant="outline"
+                                color="gray"
+                                className="w-full gap-2"
+                              >
+                                <GithubIcon className="h-4 w-4" />
+                                <span>Star on GitHub</span>
+                              </Button>
+                            </div>
                           </div>
                         </PopoverPanel>
                       </>
@@ -145,19 +177,6 @@ export function Header() {
                 </>
               )}
             </Popover>
-            <div className="flex items-center gap-4 max-lg:hidden">
-              <Button
-                href="https://github.com/anilpdv/libgen-gui"
-                variant="outline"
-                className="gap-2"
-              >
-                <GithubIcon className="h-4 w-4" />
-                GitHub Star
-              </Button>
-              <Button href="#downloads" className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold">
-                Download Free v2.0
-              </Button>
-            </div>
           </div>
         </Container>
       </nav>

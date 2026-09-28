@@ -1,205 +1,158 @@
-'use client'
-
-import clsx from 'clsx'
-
 import { Button } from '@/components/Button'
 import { Container } from '@/components/Container'
-import { Logomark } from '@/components/Logo'
 
-const plans = [
+const downloadOptions = [
   {
-    name: 'Desktop App (GUI)',
-    featured: true,
-    price: '$0',
+    name: 'macOS & Desktop App',
+    badge: 'v2.0.1 Native Build',
     description:
-      'Native graphical interface for macOS, Windows, and Linux. Built with Go and Fyne.',
-    button: {
-      label: 'Download Desktop',
-      href: 'https://github.com/anilpdv/libgen-gui/releases',
-    },
-    features: [
-      'Native macOS, Windows & Linux binaries',
-      'Multi-mirror latency health prober',
-      'Resumable background download queue',
+      'Native desktop application for Apple Silicon & Intel macOS. Features live mirror failover, background queue, and customizable destination settings.',
+    specs: [
+      'Universal macOS .app bundle & zip',
       'Instant debounced multi-field search',
+      'Configurable download directory',
+      'Resumable background queue',
       'Zero trackers & zero telemetry',
     ],
-    logomarkClassName: 'fill-cyan-500',
+    primaryAction: {
+      label: 'Download macOS (.zip)',
+      href: 'https://github.com/anilpdv/libgen-gui/releases/download/v2.0.1/LibGen.Downloader-v2.0.1-macos.zip',
+    },
+    featured: true,
   },
   {
-    name: 'Android App (SAF)',
-    featured: false,
-    price: '$0',
+    name: 'Android App (APK)',
+    badge: 'Scoped SAF Ready',
     description:
-      'Native mobile experience with full Android Storage Access Framework (SAF) folder selection.',
-    button: {
-      label: 'Get Android APK',
-      href: 'https://github.com/anilpdv/libgen-gui/releases',
-    },
-    features: [
+      'Native mobile client with Android Storage Access Framework (SAF) integration for Android 10 through Android 15 phones & tablets.',
+    specs: [
       'DocumentFile Scoped Storage (SAF)',
-      'Responsive touch-optimized UI',
-      'Background network recovery',
-      'Direct save to e-reader folders',
+      'Touch-optimized responsive list cards',
+      'Direct save to Books & e-reader folders',
+      'ARM64 & Universal APK packages',
       '100% Free & Open Source',
     ],
-    logomarkClassName: 'fill-gray-500',
+    primaryAction: {
+      label: 'Download Android APK',
+      href: 'https://github.com/anilpdv/libgen-gui/releases/download/v2.0.1/LibGen-Downloader-Android-arm64.apk',
+    },
+    featured: false,
   },
   {
-    name: 'CLI & Go Package',
-    featured: false,
-    price: '$0',
+    name: 'Source & Developer',
+    badge: 'MIT Open Source',
     description:
-      'Headless CLI tool and reusable Go SDK for script automation and terminal workflows.',
-    button: {
-      label: 'View Documentation',
-      href: 'https://github.com/anilpdv/libgen-gui#cli--headless-usage',
-    },
-    features: [
-      'Single static binary with zero dependencies',
-      'JSON output for shell pipeline scripting',
-      'Configurable concurrency & rate limits',
-      'Importable Go package (`pkg/libgen`)',
-      'Cross-compilation ready for ARM64/x86',
+      'Clone and build from source for Linux, Windows, or macOS. Full access to internal/download, internal/storage, and pkg/libgen packages.',
+    specs: [
+      'Clean Go 1.22+ architecture',
+      'Fyne v2 native vector UI toolkit',
+      'Automated test suite with race detector',
+      'Cross-compilation build scripts included',
+      'Permissive MIT open source license',
     ],
-    logomarkClassName: 'fill-gray-300',
+    primaryAction: {
+      label: 'View on GitHub',
+      href: 'https://github.com/anilpdv/libgen-gui',
+    },
+    featured: false,
   },
 ]
 
 function CheckIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
+    <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" {...props}>
       <path
-        d="M9.307 12.248a.75.75 0 1 0-1.114 1.004l1.114-1.004ZM11 15.25l-.557.502a.75.75 0 0 0 1.15-.043L11 15.25Zm4.844-5.041a.75.75 0 0 0-1.188-.918l1.188.918Zm-7.651 3.043 2.25 2.5 1.114-1.004-2.25-2.5-1.114 1.004Zm3.4 2.457 4.25-5.5-1.187-.918-4.25 5.5 1.188.918Z"
-        fill="currentColor"
-      />
-      <circle
-        cx="12"
-        cy="12"
-        r="8.25"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        fillRule="evenodd"
+        d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+        clipRule="evenodd"
       />
     </svg>
-  )
-}
-
-function Plan({
-  name,
-  price,
-  description,
-  button,
-  features,
-  logomarkClassName,
-  featured = false,
-}: {
-  name: string
-  price: string
-  description: string
-  button: {
-    label: string
-    href: string
-  }
-  features: Array<string>
-  logomarkClassName?: string
-  featured?: boolean
-}) {
-  return (
-    <section
-      className={clsx(
-        'flex flex-col overflow-hidden rounded-3xl p-8 shadow-lg shadow-gray-900/5 transition-transform hover:-translate-y-1',
-        featured ? 'bg-gray-900 ring-2 ring-cyan-500' : 'bg-white ring-1 ring-gray-200',
-      )}
-    >
-      <h3
-        className={clsx(
-          'flex items-center text-base font-semibold',
-          featured ? 'text-white' : 'text-gray-900',
-        )}
-      >
-        <Logomark className={clsx('h-6 w-6 flex-none', logomarkClassName)} />
-        <span className="ml-3">{name}</span>
-      </h3>
-      <p
-        className={clsx(
-          'relative mt-5 flex text-3xl font-bold tracking-tight',
-          featured ? 'text-white' : 'text-gray-900',
-        )}
-      >
-        {price}
-        <span className={clsx('ml-2 text-sm font-normal self-end mb-1', featured ? 'text-gray-400' : 'text-gray-500')}>
-          (100% Free & Open Source)
-        </span>
-      </p>
-      <p
-        className={clsx(
-          'mt-3 text-sm leading-relaxed',
-          featured ? 'text-gray-300' : 'text-gray-600',
-        )}
-      >
-        {description}
-      </p>
-      <div className="order-last mt-8">
-        <ul
-          role="list"
-          className={clsx(
-            '-my-2 divide-y text-sm',
-            featured
-              ? 'divide-gray-800 text-gray-300'
-              : 'divide-gray-100 text-gray-700',
-          )}
-        >
-          {features.map((feature) => (
-            <li key={feature} className="flex py-3">
-              <CheckIcon
-                className={clsx(
-                  'h-5 w-5 flex-none',
-                  featured ? 'text-cyan-400' : 'text-cyan-600',
-                )}
-              />
-              <span className="ml-3">{feature}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <Button
-        href={button.href}
-        color={featured ? 'cyan' : 'gray'}
-        className="mt-8"
-        aria-label={`Get started with ${name}`}
-      >
-        {button.label}
-      </Button>
-    </section>
   )
 }
 
 export function Pricing() {
   return (
     <section
-      id="pricing"
-      aria-labelledby="pricing-title"
-      className="border-t border-gray-200 bg-gray-100 py-20 sm:py-32"
+      id="downloads"
+      aria-label="Download Options"
+      className="border-t border-gray-200/80 bg-gray-100 py-20 sm:py-28"
     >
       <Container>
         <div className="mx-auto max-w-2xl text-center">
-          <h2
-            id="pricing-title"
-            className="text-3xl font-medium tracking-tight text-gray-900 sm:text-4xl"
-          >
-            Free forever. No subscriptions. No ads.
+          <div className="inline-flex items-center gap-2 rounded-full bg-cyan-100 px-3.5 py-1 text-xs font-semibold text-cyan-800 ring-1 ring-cyan-700/20 mb-4">
+            <span>GET LIBGEN GUI</span>
+          </div>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            Free and open source. No ads. No telemetry.
           </h2>
-          <p className="mt-3 text-lg text-gray-600 leading-relaxed">
-            LibGen GUI is distributed under the permissive MIT Open Source license. Choose the version that fits your workflow.
+          <p className="mt-4 text-base text-gray-600 leading-relaxed sm:text-lg">
+            Choose your platform below. All releases are self-contained with zero runtime dependencies.
           </p>
         </div>
 
-        <div className="mx-auto mt-16 grid max-w-2xl grid-cols-1 items-stretch gap-x-8 gap-y-10 sm:mt-20 lg:max-w-none lg:grid-cols-3">
-          {plans.map((plan) => (
-            <Plan key={plan.name} {...plan} />
+        <div className="mt-14 grid grid-cols-1 gap-8 lg:grid-cols-3 items-stretch">
+          {downloadOptions.map((option) => (
+            <div
+              key={option.name}
+              className={`rounded-2xl p-7 flex flex-col justify-between transition-all duration-200 ${
+                option.featured
+                  ? 'bg-gray-950 text-white shadow-xl ring-2 ring-cyan-500'
+                  : 'bg-white text-gray-900 shadow-2xs border border-gray-200/90'
+              }`}
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className={`text-lg font-bold ${option.featured ? 'text-white' : 'text-gray-900'}`}>
+                    {option.name}
+                  </h3>
+                  <span
+                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                      option.featured
+                        ? 'bg-cyan-950 text-cyan-400 border border-cyan-800/60'
+                        : 'bg-cyan-50 text-cyan-700 border border-cyan-200'
+                    }`}
+                  >
+                    {option.badge}
+                  </span>
+                </div>
+
+                <p
+                  className={`mt-3 text-sm leading-relaxed ${
+                    option.featured ? 'text-gray-300' : 'text-gray-600'
+                  }`}
+                >
+                  {option.description}
+                </p>
+
+                <div className={`mt-6 pt-6 border-t ${option.featured ? 'border-gray-800' : 'border-gray-100'}`}>
+                  <ul role="list" className="space-y-3">
+                    {option.specs.map((spec) => (
+                      <li key={spec} className="flex items-start gap-3 text-sm">
+                        <CheckIcon
+                          className={`h-5 w-5 shrink-0 mt-0.5 ${
+                            option.featured ? 'text-cyan-400' : 'text-cyan-600'
+                          }`}
+                        />
+                        <span className={option.featured ? 'text-gray-200' : 'text-gray-700'}>
+                          {spec}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-4">
+                <Button
+                  href={option.primaryAction.href}
+                  variant="solid"
+                  color={option.featured ? 'cyan' : 'gray'}
+                  className="w-full text-center"
+                >
+                  {option.primaryAction.label}
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
       </Container>

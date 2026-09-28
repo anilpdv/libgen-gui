@@ -1,29 +1,11 @@
 'use client'
 
-import { Fragment, useEffect, useId, useRef, useState } from 'react'
-import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
+import { useState } from 'react'
 import clsx from 'clsx'
-import {
-  type MotionProps,
-  type Variant,
-  type Variants,
-  AnimatePresence,
-  motion,
-} from 'framer-motion'
-import { useDebouncedCallback } from 'use-debounce'
 
 import { AppScreen } from '@/components/AppScreen'
-import { CircleBackground } from '@/components/CircleBackground'
 import { Container } from '@/components/Container'
 import { PhoneFrame } from '@/components/PhoneFrame'
-
-const MotionAppScreenHeader = motion(AppScreen.Header)
-const MotionAppScreenBody = motion(AppScreen.Body)
-
-interface CustomAnimationProps {
-  isForwards: boolean
-  changeCount: number
-}
 
 const features = [
   {
@@ -31,13 +13,15 @@ const features = [
     description:
       'Continuous background latency probing and automatic failover across official mirrors ensure your searches and downloads never stall or drop packets.',
     icon: MirrorProbeIcon,
+    badge: 'Zero Dead Mirrors',
     screen: MirrorScreen,
   },
   {
     name: 'Resumable Queue & Range Requests',
     description:
-      'A robust serialized queue with pause, resume, cancel, and HTTP Range support. Interrupted downloads seamlessly pick up right where they left off without restarting.',
+      'A robust serialized FIFO queue with pause, resume, cancel, and HTTP Range support. Interrupted downloads seamlessly pick up right where they left off.',
     icon: QueueDownloadIcon,
+    badge: 'Atomic .part Files',
     screen: QueueScreen,
   },
   {
@@ -45,23 +29,19 @@ const features = [
     description:
       'Debounced search across title, author, series, publisher, ISBN, and MD5 with live extension and size badges, direct 1-click downloads, and metadata inspection.',
     icon: SearchBookIcon,
+    badge: 'Sub-50ms Response',
     screen: SearchScreen,
   },
 ]
 
 function MirrorProbeIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
-    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true" {...props}>
-      <circle cx={16} cy={16} r={16} fill="#06B6D4" fillOpacity={0.15} />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <circle cx={12} cy={12} r={9} stroke="#22d3ee" strokeWidth="2" />
+      <circle cx={12} cy={12} r={3} fill="#22d3ee" />
       <path
-        d="M8 16a8 8 0 1 0 16 0A8 8 0 0 0 8 16zm4 0a4 4 0 1 1 8 0 4 4 0 0 1-8 0z"
-        stroke="#06B6D4"
-        strokeWidth="2"
-      />
-      <circle cx="16" cy="16" r="2" fill="#06B6D4" />
-      <path
-        d="M16 6v3M16 23v3M6 16h3M23 16h3"
-        stroke="#06B6D4"
+        d="M12 3v3M12 18v3M3 12h3M18 12h3"
+        stroke="#22d3ee"
         strokeWidth="2"
         strokeLinecap="round"
       />
@@ -71,11 +51,10 @@ function MirrorProbeIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
 
 function QueueDownloadIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
-    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true" {...props}>
-      <circle cx={16} cy={16} r={16} fill="#06B6D4" fillOpacity={0.15} />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
       <path
-        d="M11 15l5 5 5-5M16 8v12M9 24h14"
-        stroke="#06B6D4"
+        d="M8 12l4 4 4-4M12 4v12M5 20h14"
+        stroke="#22d3ee"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -86,498 +65,241 @@ function QueueDownloadIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
 
 function SearchBookIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
-    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true" {...props}>
-      <circle cx={16} cy={16} r={16} fill="#06B6D4" fillOpacity={0.15} />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
       <path
-        d="M14.5 20a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11zm4-1.5l4.5 4.5"
-        stroke="#06B6D4"
+        d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm6-2l4 4"
+        stroke="#22d3ee"
         strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M8 23h16"
-        stroke="#06B6D4"
-        strokeWidth="1.5"
         strokeLinecap="round"
       />
     </svg>
   )
 }
 
-const headerAnimation: Variants = {
-  initial: { opacity: 0, transition: { duration: 0.3 } },
-  animate: { opacity: 1, transition: { duration: 0.3, delay: 0.3 } },
-  exit: { opacity: 0, transition: { duration: 0.3 } },
-}
-
-const maxZIndex = 2147483647
-
-const bodyVariantBackwards: Variant = {
-  opacity: 0.4,
-  scale: 0.8,
-  zIndex: 0,
-  filter: 'blur(4px)',
-  transition: { duration: 0.4 },
-}
-
-const bodyVariantForwards: Variant = (custom: CustomAnimationProps) => ({
-  y: '100%',
-  zIndex: maxZIndex - custom.changeCount,
-  transition: { duration: 0.4 },
-})
-
-const bodyAnimation: MotionProps = {
-  initial: 'initial',
-  animate: 'animate',
-  exit: 'exit',
-  variants: {
-    initial: (custom: CustomAnimationProps, ...props) =>
-      custom.isForwards
-        ? bodyVariantForwards(custom, ...props)
-        : bodyVariantBackwards,
-    animate: (custom: CustomAnimationProps) => ({
-      y: '0%',
-      opacity: 1,
-      scale: 1,
-      zIndex: maxZIndex / 2 - custom.changeCount,
-      filter: 'blur(0px)',
-      transition: { duration: 0.4 },
-    }),
-    exit: (custom: CustomAnimationProps, ...props) =>
-      custom.isForwards
-        ? bodyVariantBackwards
-        : bodyVariantForwards(custom, ...props),
-  },
-}
-
-type ScreenProps =
-  | {
-      animated: true
-      custom: CustomAnimationProps
-    }
-  | { animated?: false }
-
-function MirrorScreen(props: ScreenProps) {
+function MirrorScreen() {
   return (
     <AppScreen className="w-full">
-      <MotionAppScreenHeader {...(props.animated ? headerAnimation : {})}>
+      <AppScreen.Header>
         <AppScreen.Title>Mirror Health</AppScreen.Title>
         <AppScreen.Subtitle>
-          <span className="text-emerald-400">3 of 3 Active</span> • 124ms avg latency
+          <span className="text-emerald-400 font-semibold">3 of 3 Active</span> • 115ms avg latency
         </AppScreen.Subtitle>
-      </MotionAppScreenHeader>
-      <MotionAppScreenBody
-        {...(props.animated ? { ...bodyAnimation, custom: props.custom } : {})}
-      >
+      </AppScreen.Header>
+      <AppScreen.Body>
         <div className="divide-y divide-gray-100">
           {[
-            {
-              url: 'https://libgen.is',
-              latency: '82 ms',
-              status: 'Optimal (Primary)',
-              healthy: true,
-              color: 'bg-emerald-500',
-            },
-            {
-              url: 'https://libgen.rs',
-              latency: '115 ms',
-              status: 'Healthy (Failover 1)',
-              healthy: true,
-              color: 'bg-emerald-500',
-            },
-            {
-              url: 'https://libgen.st',
-              latency: '178 ms',
-              status: 'Healthy (Failover 2)',
-              healthy: true,
-              color: 'bg-emerald-500',
-            },
-            {
-              url: 'https://libgen.li',
-              latency: '240 ms',
-              status: 'Active (Fallback)',
-              healthy: true,
-              color: 'bg-cyan-500',
-            },
+            { url: 'https://libgen.is', latency: '82 ms', status: 'Optimal (Primary)', color: 'bg-emerald-500' },
+            { url: 'https://libgen.rs', latency: '115 ms', status: 'Healthy (Failover 1)', color: 'bg-emerald-500' },
+            { url: 'https://libgen.st', latency: '178 ms', status: 'Healthy (Failover 2)', color: 'bg-emerald-500' },
+            { url: 'https://libgen.li', latency: '240 ms', status: 'Active (Fallback)', color: 'bg-cyan-500' },
           ].map((mirror) => (
-            <div key={mirror.url} className="flex items-center gap-3 px-4 py-3.5">
-              <div className="flex-none">
-                <span className={`inline-block h-2.5 w-2.5 rounded-full ${mirror.color}`} />
-              </div>
+            <div key={mirror.url} className="flex items-center gap-3 px-4 py-3">
+              <span className={`inline-block h-2 w-2 rounded-full ${mirror.color}`} />
               <div className="flex-auto min-w-0">
-                <div className="text-xs font-semibold text-gray-900 truncate">
-                  {mirror.url}
-                </div>
-                <div className="text-[11px] text-gray-500">{mirror.status}</div>
+                <div className="text-xs font-semibold text-gray-900 truncate">{mirror.url}</div>
+                <div className="text-[10px] text-gray-500">{mirror.status}</div>
               </div>
               <div className="flex-none text-right">
-                <div className="text-xs font-medium font-mono text-gray-900">
-                  {mirror.latency}
-                </div>
-                <div className="text-[10px] text-emerald-600 font-medium">99.9% Up</div>
+                <div className="text-xs font-mono font-medium text-gray-900">{mirror.latency}</div>
+                <div className="text-[10px] text-emerald-600 font-medium">99.9%</div>
               </div>
             </div>
           ))}
         </div>
-        <div className="p-4 bg-gray-50 border-t border-gray-100">
-          <div className="text-[11px] text-gray-600 flex items-center justify-between">
-            <span>Adaptive Auto-Probe</span>
-            <span className="font-semibold text-cyan-600">Every 30s</span>
-          </div>
+        <div className="p-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-600">
+          <span>Background Auto-Probe</span>
+          <span className="font-semibold text-cyan-600">Every 30s</span>
         </div>
-      </MotionAppScreenBody>
+      </AppScreen.Body>
     </AppScreen>
   )
 }
 
-function QueueScreen(props: ScreenProps) {
+function QueueScreen() {
   return (
     <AppScreen className="w-full">
-      <MotionAppScreenHeader {...(props.animated ? headerAnimation : {})}>
+      <AppScreen.Header>
         <AppScreen.Title>Download Queue</AppScreen.Title>
         <AppScreen.Subtitle>
-          <span className="text-cyan-400">2 Downloading</span> • 1 Queued
+          <span className="text-cyan-400 font-semibold">2 Downloading</span> • 1 Queued
         </AppScreen.Subtitle>
-      </MotionAppScreenHeader>
-      <MotionAppScreenBody
-        {...(props.animated ? { ...bodyAnimation, custom: props.custom } : {})}
-      >
-        <div className="p-4 space-y-4">
-          <div className="rounded-xl border border-gray-100 bg-white p-3.5 shadow-xs">
+      </AppScreen.Header>
+      <AppScreen.Body>
+        <div className="p-3.5 space-y-3">
+          <div className="rounded-xl border border-gray-100 bg-white p-3 shadow-2xs">
             <div className="flex justify-between items-start">
               <div>
                 <h4 className="text-xs font-semibold text-gray-900 line-clamp-1">
                   Computer Systems: A Programmer’s Perspective
                 </h4>
-                <p className="text-[11px] text-gray-500 mt-0.5">PDF • 14.8 MB / 19.4 MB</p>
+                <p className="text-[10px] text-gray-500 mt-0.5">PDF • 14.8 MB / 19.4 MB</p>
               </div>
-              <span className="text-[10px] font-semibold text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-semibold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded-full">
                 76%
               </span>
             </div>
-            <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
               <div className="h-full bg-cyan-500 rounded-full" style={{ width: '76%' }} />
             </div>
-            <div className="mt-2 flex justify-between text-[10px] text-gray-400">
+            <div className="mt-1.5 flex justify-between text-[9px] text-gray-500">
               <span>3.4 MB/s</span>
-              <span>Resumable Chunk 4/5</span>
+              <span>Chunk 4/5 • Resumable</span>
             </div>
           </div>
 
-          <div className="rounded-xl border border-gray-100 bg-white p-3.5 shadow-xs">
+          <div className="rounded-xl border border-gray-100 bg-white p-3 shadow-2xs">
             <div className="flex justify-between items-start">
               <div>
                 <h4 className="text-xs font-semibold text-gray-900 line-clamp-1">
                   Designing Data-Intensive Applications
                 </h4>
-                <p className="text-[11px] text-gray-500 mt-0.5">EPUB • 8.2 MB / 8.2 MB</p>
+                <p className="text-[10px] text-gray-500 mt-0.5">EPUB • 8.2 MB / 8.2 MB</p>
               </div>
-              <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
                 Completed
               </span>
             </div>
-            <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-emerald-100">
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-emerald-100">
               <div className="h-full bg-emerald-500 rounded-full w-full" />
             </div>
-            <div className="mt-2 flex justify-between text-[10px] text-gray-400">
-              <span>Saved to /Downloads</span>
-              <span>Verified MD5</span>
+            <div className="mt-1.5 flex justify-between text-[9px] text-gray-500">
+              <span>Saved to ~/Documents/LibgenBooks</span>
+              <span>MD5 Verified</span>
             </div>
           </div>
 
-          <div className="rounded-xl border border-gray-100 bg-gray-50/50 p-3.5">
-            <div className="flex justify-between items-start">
-              <div>
-                <h4 className="text-xs font-medium text-gray-700 line-clamp-1">
-                  Structure and Interpretation of Computer Programs
-                </h4>
-                <p className="text-[11px] text-gray-400 mt-0.5">PDF • 12.1 MB</p>
-              </div>
-              <span className="text-[10px] font-medium text-gray-500 bg-gray-200/80 px-2 py-0.5 rounded-full">
-                Queued
-              </span>
-            </div>
+          <div className="rounded-xl border border-gray-100 bg-gray-50 p-2.5 flex justify-between items-center">
+            <span className="text-xs font-medium text-gray-700 line-clamp-1">
+              Structure and Interpretation of Computer Programs
+            </span>
+            <span className="text-[10px] font-medium text-gray-500 bg-gray-200/80 px-2 py-0.5 rounded-full shrink-0 ml-2">
+              Queued
+            </span>
           </div>
         </div>
-      </MotionAppScreenBody>
+      </AppScreen.Body>
     </AppScreen>
   )
 }
 
-function SearchScreen(props: ScreenProps) {
+function SearchScreen() {
   return (
     <AppScreen className="w-full">
-      <MotionAppScreenHeader {...(props.animated ? headerAnimation : {})}>
+      <AppScreen.Header>
         <AppScreen.Title>Book Search</AppScreen.Title>
         <AppScreen.Subtitle>Query: &quot;Distributed Systems&quot;</AppScreen.Subtitle>
-      </MotionAppScreenHeader>
-      <MotionAppScreenBody
-        {...(props.animated ? { ...bodyAnimation, custom: props.custom } : {})}
-      >
+      </AppScreen.Header>
+      <AppScreen.Body>
         <div className="p-3">
-          <div className="rounded-lg bg-gray-100 px-3 py-2 text-xs text-gray-600 flex items-center gap-2 mb-3">
+          <div className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs text-gray-700 flex items-center gap-2 mb-2.5">
             <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-gray-400">
               <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
             </svg>
-            <span className="text-gray-900 font-medium">Distributed Systems 3rd Ed</span>
+            <span className="text-gray-900 font-medium">Distributed Systems</span>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {[
-              {
-                title: 'Distributed Systems: Principles and Paradigms',
-                author: 'Andrew S. Tanenbaum, Maarten van Steen',
-                year: '2023',
-                format: 'PDF',
-                size: '18.4 MB',
-              },
-              {
-                title: 'Understanding Distributed Systems, Second Edition',
-                author: 'Roberto Vitillo',
-                year: '2022',
-                format: 'EPUB',
-                size: '5.1 MB',
-              },
-              {
-                title: 'Database Internals: A Deep Dive into Distributed Systems',
-                author: 'Alex Petrov',
-                year: '2019',
-                format: 'PDF',
-                size: '14.2 MB',
-              },
+              { title: 'Distributed Systems: Principles & Paradigms', author: 'Tanenbaum, van Steen', year: '2023', format: 'PDF', size: '18.4 MB' },
+              { title: 'Understanding Distributed Systems, 2nd Edition', author: 'Roberto Vitillo', year: '2022', format: 'EPUB', size: '5.1 MB' },
+              { title: 'Database Internals: Distributed Data Systems', author: 'Alex Petrov', year: '2019', format: 'PDF', size: '14.2 MB' },
             ].map((book) => (
-              <div key={book.title} className="rounded-lg border border-gray-100 p-2.5 hover:border-cyan-200 transition-colors">
+              <div key={book.title} className="rounded-lg border border-gray-100 p-2.5 bg-white">
                 <h5 className="text-xs font-semibold text-gray-900 line-clamp-1">{book.title}</h5>
                 <p className="text-[10px] text-gray-500 mt-0.5">{book.author}</p>
-                <div className="mt-2 flex items-center justify-between">
-                  <div className="flex gap-1.5 text-[9px]">
+                <div className="mt-1.5 flex items-center justify-between">
+                  <div className="flex gap-1 text-[9px]">
                     <span className="bg-gray-100 px-1.5 py-0.5 rounded font-mono font-medium">{book.format}</span>
                     <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">{book.size}</span>
                     <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">{book.year}</span>
                   </div>
-                  <button className="bg-cyan-500 hover:bg-cyan-600 text-white text-[10px] font-medium px-2 py-0.5 rounded transition-colors">
+                  <span className="bg-cyan-600 text-white text-[9px] font-medium px-2 py-0.5 rounded">
                     Download
-                  </button>
+                  </span>
                 </div>
               </div>
             ))}
           </div>
         </div>
-      </MotionAppScreenBody>
+      </AppScreen.Body>
     </AppScreen>
   )
 }
 
-function usePrevious<T>(value: T) {
-  let ref = useRef<T | undefined>(undefined)
-
-  useEffect(() => {
-    ref.current = value
-  }, [value])
-
-  return ref.current
-}
-
-function FeaturesDesktop() {
-  let [changeCount, setChangeCount] = useState(0)
-  let [selectedIndex, setSelectedIndex] = useState(0)
-  let prevIndex = usePrevious(selectedIndex)
-  let isForwards = prevIndex === undefined ? true : selectedIndex > prevIndex
-
-  let onChange = useDebouncedCallback(
-    (selectedIndex) => {
-      setSelectedIndex(selectedIndex)
-      setChangeCount((changeCount) => changeCount + 1)
-    },
-    100,
-    { leading: true },
-  )
-
-  return (
-    <TabGroup
-      className="grid grid-cols-12 items-center gap-8 lg:gap-16 xl:gap-24"
-      selectedIndex={selectedIndex}
-      onChange={onChange}
-      vertical
-    >
-      <TabList className="relative z-10 order-last col-span-6 space-y-6">
-        {features.map((feature, featureIndex) => (
-          <div
-            key={feature.name}
-            className="relative rounded-2xl transition-colors hover:bg-gray-800/30"
-          >
-            {featureIndex === selectedIndex && (
-              <motion.div
-                layoutId="activeBackground"
-                className="absolute inset-0 bg-gray-800"
-                initial={{ borderRadius: 16 }}
-              />
-            )}
-            <div className="relative z-10 p-8">
-              <feature.icon className="h-8 w-8" />
-              <h3 className="mt-6 text-lg font-semibold text-white">
-                <Tab className="text-left data-selected:not-data-focus:outline-hidden">
-                  <span className="absolute inset-0 rounded-2xl" />
-                  {feature.name}
-                </Tab>
-              </h3>
-              <p className="mt-2 text-sm text-gray-400 leading-relaxed">
-                {feature.description}
-              </p>
-            </div>
-          </div>
-        ))}
-      </TabList>
-      <div className="relative col-span-6">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-          <CircleBackground color="#13B5C8" className="animate-spin-slower" />
-        </div>
-        <PhoneFrame className="z-10 mx-auto w-full max-w-[366px]">
-          <TabPanels as={Fragment}>
-            <AnimatePresence
-              initial={false}
-              custom={{ isForwards, changeCount }}
-            >
-              {features.map((feature, featureIndex) =>
-                selectedIndex === featureIndex ? (
-                  <TabPanel
-                    static
-                    key={feature.name + changeCount}
-                    className="col-start-1 row-start-1 flex focus:outline-offset-32 data-selected:not-data-focus:outline-hidden"
-                  >
-                    <feature.screen
-                      animated
-                      custom={{ isForwards, changeCount }}
-                    />
-                  </TabPanel>
-                ) : null,
-              )}
-            </AnimatePresence>
-          </TabPanels>
-        </PhoneFrame>
-      </div>
-    </TabGroup>
-  )
-}
-
-function FeaturesMobile() {
-  let [activeIndex, setActiveIndex] = useState(0)
-  let slideContainerRef = useRef<React.ElementRef<'div'>>(null)
-  let slideRefs = useRef<Array<React.ElementRef<'div'>>>([])
-
-  useEffect(() => {
-    let observer = new window.IntersectionObserver(
-      (entries) => {
-        for (let entry of entries) {
-          if (entry.isIntersecting && entry.target instanceof HTMLDivElement) {
-            setActiveIndex(slideRefs.current.indexOf(entry.target))
-            break
-          }
-        }
-      },
-      {
-        root: slideContainerRef.current,
-        threshold: 0.6,
-      },
-    )
-
-    for (let slide of slideRefs.current) {
-      if (slide) {
-        observer.observe(slide)
-      }
-    }
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [slideContainerRef, slideRefs])
-
-  return (
-    <>
-      <div
-        ref={slideContainerRef}
-        className="-mb-4 flex snap-x snap-mandatory -space-x-4 overflow-x-auto overscroll-x-contain scroll-smooth pb-4 [scrollbar-width:none] sm:-space-x-6 [&::-webkit-scrollbar]:hidden"
-      >
-        {features.map((feature, featureIndex) => (
-          <div
-            key={featureIndex}
-            ref={(ref) => {
-              if (ref) {
-                slideRefs.current[featureIndex] = ref
-              }
-            }}
-            className="w-full flex-none snap-center px-4 sm:px-6"
-          >
-            <div className="relative transform overflow-hidden rounded-2xl bg-gray-800 px-5 py-6">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                <CircleBackground
-                  color="#13B5C8"
-                  className={featureIndex % 2 === 1 ? 'rotate-180' : undefined}
-                />
-              </div>
-              <PhoneFrame className="relative mx-auto w-full max-w-[366px]">
-                <feature.screen />
-              </PhoneFrame>
-              <div className="absolute inset-x-0 bottom-0 bg-gray-800/95 p-6 backdrop-blur-sm sm:p-10">
-                <feature.icon className="h-8 w-8" />
-                <h3 className="mt-6 text-sm font-semibold text-white sm:text-lg">
-                  {feature.name}
-                </h3>
-                <p className="mt-2 text-sm text-gray-400 leading-relaxed">
-                  {feature.description}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-6 flex justify-center gap-3">
-        {features.map((_, featureIndex) => (
-          <button
-            type="button"
-            key={featureIndex}
-            className={clsx(
-              'relative h-0.5 w-4 rounded-full',
-              featureIndex === activeIndex ? 'bg-gray-300' : 'bg-gray-500',
-            )}
-            aria-label={`Go to slide ${featureIndex + 1}`}
-            onClick={() => {
-              slideRefs.current[featureIndex].scrollIntoView({
-                block: 'nearest',
-                inline: 'nearest',
-              })
-            }}
-          >
-            <span className="absolute -inset-x-1.5 -inset-y-3" />
-          </button>
-        ))}
-      </div>
-    </>
-  )
-}
-
 export function PrimaryFeatures() {
+  let [selectedFeature, setSelectedFeature] = useState(0)
+  let ActiveScreen = features[selectedFeature].screen
+
   return (
     <section
       id="features"
-      aria-label="Features for downloading books and papers"
-      className="bg-gray-900 py-20 sm:py-32"
+      aria-label="Engineered for Reliability"
+      className="bg-gray-950 py-20 sm:py-28 text-white relative overflow-hidden"
     >
       <Container>
-        <div className="mx-auto max-w-2xl lg:mx-0 lg:max-w-3xl">
-          <h2 className="text-3xl font-medium tracking-tight text-white sm:text-4xl">
+        <div className="max-w-2xl">
+          <div className="inline-flex items-center gap-2 rounded-full bg-cyan-950/80 px-3.5 py-1 text-xs font-semibold text-cyan-400 ring-1 ring-cyan-500/30 mb-4">
+            <span>RESILIENT INFRASTRUCTURE</span>
+          </div>
+          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
             Engineered for reliability, speed, and clean code.
           </h2>
-          <p className="mt-3 text-lg text-gray-400 leading-relaxed">
-            Unlike web scrapers and heavyweight wrappers, LibGen GUI is compiled into a lightweight native binary with production-grade networking, resilient mirror rotation, and thread-safe queue management.
+          <p className="mt-4 text-base text-gray-300 leading-relaxed sm:text-lg">
+            Unlike slow browser scraping or heavyweight wrappers, LibGen GUI is compiled into a lightweight native binary with production-grade networking, resilient mirror rotation, and thread-safe queue management.
           </p>
         </div>
-      </Container>
-      <div className="mt-16 md:hidden">
-        <FeaturesMobile />
-      </div>
-      <Container className="hidden md:mt-20 md:block">
-        <FeaturesDesktop />
+
+        <div className="mt-14 grid grid-cols-1 gap-12 lg:grid-cols-12 lg:items-center">
+          {/* 3 Consistent Cards */}
+          <div className="lg:col-span-7 space-y-4">
+            {features.map((feature, idx) => {
+              let isSelected = selectedFeature === idx
+              let Icon = feature.icon
+              return (
+                <button
+                  key={feature.name}
+                  type="button"
+                  onClick={() => setSelectedFeature(idx)}
+                  className={clsx(
+                    'w-full text-left rounded-2xl p-6 transition-all duration-200 border cursor-pointer',
+                    isSelected
+                      ? 'bg-gray-900 border-cyan-500/80 ring-1 ring-cyan-500/40 shadow-lg shadow-cyan-950/40'
+                      : 'bg-gray-900/50 border-gray-800/80 hover:bg-gray-900/80 hover:border-gray-700 text-gray-300',
+                  )}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={clsx('rounded-xl p-2.5 shrink-0', isSelected ? 'bg-cyan-500/20 text-cyan-400' : 'bg-gray-800 text-gray-400')}>
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <div className="flex-auto">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-base font-semibold text-white sm:text-lg">
+                          {feature.name}
+                        </h3>
+                        <span className="text-[11px] font-semibold text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded-full border border-cyan-800/50 shrink-0">
+                          {feature.badge}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm text-gray-300 leading-relaxed">
+                        {feature.description}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Device Screen Preview */}
+          <div className="lg:col-span-5 flex justify-center">
+            <div className="relative w-full max-w-[340px] drop-shadow-2xl">
+              <div className="absolute inset-0 bg-cyan-500/15 rounded-3xl blur-2xl pointer-events-none" />
+              <PhoneFrame>
+                <ActiveScreen />
+              </PhoneFrame>
+            </div>
+          </div>
+        </div>
       </Container>
     </section>
   )
